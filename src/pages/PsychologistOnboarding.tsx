@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Brain, ArrowRight, ArrowLeft, Check, X } from "lucide-react";
+import { Brain, ArrowRight, ArrowLeft, Check, X, LogOut } from "lucide-react";
 import { validateStrongPassword, PASSWORD_RULE_TEXT } from "@/lib/passwordValidation";
 
 const ESPECIALIDADES = [
@@ -28,7 +28,7 @@ const ESPECIALIDADES = [
 ];
 
 const PsychologistOnboarding = () => {
-  const { user, signUp, signIn, refreshProfile } = useAuth();
+  const { user, signUp, signIn, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -154,9 +154,27 @@ const PsychologistOnboarding = () => {
     </li>
   );
 
+  const handleExit = async () => {
+    if (user) {
+      await signOut();
+    }
+    navigate("/");
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center gradient-soft p-4">
       <div className="w-full max-w-lg animate-fade-in">
+        <div className="flex justify-end mb-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleExit}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <LogOut className="w-4 h-4 mr-1" /> Sair
+          </Button>
+        </div>
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl gradient-primary mb-3">
             <Brain className="w-6 h-6 text-primary-foreground" />
