@@ -27,9 +27,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AppRoutes = () => {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, profileLoading } = useAuth();
 
-  if (loading) {
+  // Wait for both auth session AND profile (when logged in) before deciding routes
+  if (loading || (user && profileLoading)) {
     return <div className="min-h-screen flex items-center justify-center gradient-soft"><div className="animate-pulse text-muted-foreground">Carregando...</div></div>;
   }
 
@@ -37,8 +38,10 @@ const AppRoutes = () => {
   const getHomeRedirect = () => {
     // Not logged in → show role selection (entry point)
     if (!user) return <RoleSelect />;
-    // Logged in, no role yet → role selection
-    if (!profile?.role) return <RoleSelect />;
+    // Logged in but profile not loaded — fallback to role selection
+    if (!profile) return <RoleSelect />;
+    // Logged in with no role yet → role selection
+    if (!profile.role) return <RoleSelect />;
     // Logged in with role but onboarding incomplete → onboarding
     if (!profile.onboarding_completed) {
       return <Navigate to={profile.role === "psicologo" ? "/onboarding/psicologo" : "/onboarding/paciente"} replace />;
