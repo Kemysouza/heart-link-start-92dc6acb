@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Brain, ArrowRight, ArrowLeft } from "lucide-react";
+import { Brain, ArrowRight, ArrowLeft, Check, X } from "lucide-react";
+import { validateStrongPassword, PASSWORD_RULE_TEXT } from "@/lib/passwordValidation";
 
 const ESPECIALIDADES = [
   "Depressão",
@@ -27,10 +28,16 @@ const ESPECIALIDADES = [
 ];
 
 const PsychologistOnboarding = () => {
-  const { user, refreshProfile } = useAuth();
+  const { user, signUp, signIn, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Credentials (only used when there's no logged-in user yet)
+  const [email, setEmail] = useState("");
+  const [confirmEmail, setConfirmEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const [nomeCompleto, setNomeCompleto] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -38,27 +45,91 @@ const PsychologistOnboarding = () => {
   const [trajetoria, setTrajetoria] = useState("");
   const [especialidades, setEspecialidades] = useState<string[]>([]);
 
+  const needsAccount = !user;
+
+  // Password rule checks (live indicators)
+  const pwChecks = {
+    length: password.length >= 8,
+    upper: /[A-Z]/.test(password),
+    lower: /[a-z]/.test(password),
+    special: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(password),
+  };
+
+  const emailsMatch = email && email === confirmEmail;
+  const passwordsMatch = password && password === confirmPassword;
+  const passwordStrong = validateStrongPassword(password) === null;
+
+  const step1Valid = needsAccount
+    ? !!nomeCompleto &&
+      !!crp &&
+      !!email &&
+      emailsMatch &&
+      passwordStrong &&
+      passwordsMatch
+    : !!nomeCompleto && !!crp;
+
   const toggleEspecialidade = (esp: string) => {
     setEspecialidades((prev) =>
       prev.includes(esp) ? prev.filter((e) => e !== esp) : [...prev, esp]
     );
   };
 
+  const handleNextStep1 = async () => {
+    if (!step1Valid) return;
+
+    // If user is not signed in yet, create the account first
+    if (needsAccount) {
+      setIsLoading(true);
+      try {
+        await signUp(email, password);
+        // Try to sign in immediately so the rest of the onboarding can write data
+        try {
+          await signIn(email, password);
+        } catch {
+          toast.success("Cadastro criado! Verifique seu e-mail para confirmar.");
+          navigate(`/auth/psicologo`);
+          return;
+        }
+        // Mark role for the freshly created profile
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (currentUser) {
+          await supabase
+            .from("profiles")
+            .update({ role: "psicologo" })
+            .eq("user_id", currentUser.id);
+          await refreshProfile();
+        }
+      } catch (error: any) {
+        toast.error(error.message || "Erro ao criar conta");
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(false);
+    }
+
+    setStep(2);
+  };
+
   const handleSubmit = async () => {
-    if (!user) return;
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) {
+      toast.error("Sessão expirada. Faça login novamente.");
+      navigate("/auth/psicologo");
+      return;
+    }
     setIsLoading(true);
     try {
       const { error: profileError } = await supabase
         .from("profiles")
         .update({ nome_completo: nomeCompleto, telefone, onboarding_completed: true })
-        .eq("user_id", user.id);
+        .eq("user_id", currentUser.id);
 
       if (profileError) throw profileError;
 
       const { error: psychError } = await supabase
         .from("psychologist_profiles")
         .insert({
-          user_id: user.id,
+          user_id: currentUser.id,
           crp,
           trajetoria_profissional: trajetoria,
           especializacoes: especialidades,
@@ -75,6 +146,13 @@ const PsychologistOnboarding = () => {
       setIsLoading(false);
     }
   };
+
+  const RuleItem = ({ ok, label }: { ok: boolean; label: string }) => (
+    <li className={`flex items-center gap-2 text-xs ${ok ? "text-primary" : "text-muted-foreground"}`}>
+      {ok ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+      {label}
+    </li>
+  );
 
   return (
     <div className="min-h-screen flex items-center justify-center gradient-soft p-4">
@@ -104,7 +182,7 @@ const PsychologistOnboarding = () => {
               {step === 3 && "Especializações"}
             </CardTitle>
             <CardDescription>
-              {step === 1 && "Preencha seus dados básicos"}
+              {step === 1 && "Preencha seus dados básicos e crie suas credenciais"}
               {step === 2 && "Conte-nos sobre sua trajetória"}
               {step === 3 && "Selecione suas áreas de atuação"}
             </CardDescription>
@@ -124,8 +202,71 @@ const PsychologistOnboarding = () => {
                   <Label>CRP</Label>
                   <Input value={crp} onChange={(e) => setCrp(e.target.value)} placeholder="Ex: 06/123456" />
                 </div>
-                <Button onClick={() => setStep(2)} className="w-full gradient-primary text-primary-foreground" disabled={!nomeCompleto || !crp}>
-                  Próximo <ArrowRight className="ml-2 w-4 h-4" />
+
+                {needsAccount && (
+                  <>
+                    <div className="pt-2 border-t border-border">
+                      <p className="text-sm font-medium text-foreground mb-3">Credenciais de acesso</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>E-mail</Label>
+                      <Input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="seu@email.com"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Confirmar E-mail</Label>
+                      <Input
+                        type="email"
+                        value={confirmEmail}
+                        onChange={(e) => setConfirmEmail(e.target.value)}
+                        placeholder="Repita seu e-mail"
+                      />
+                      {confirmEmail && !emailsMatch && (
+                        <p className="text-xs text-destructive">Os e-mails não coincidem</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Senha</Label>
+                      <Input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder={PASSWORD_RULE_TEXT}
+                      />
+                      {password && (
+                        <ul className="space-y-1 mt-1">
+                          <RuleItem ok={pwChecks.length} label="Mínimo 8 caracteres" />
+                          <RuleItem ok={pwChecks.upper} label="Uma letra maiúscula" />
+                          <RuleItem ok={pwChecks.lower} label="Uma letra minúscula" />
+                          <RuleItem ok={pwChecks.special} label="Um caractere especial (!@#$...)" />
+                        </ul>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Confirmar Senha</Label>
+                      <Input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Repita sua senha"
+                      />
+                      {confirmPassword && !passwordsMatch && (
+                        <p className="text-xs text-destructive">As senhas não coincidem</p>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                <Button
+                  onClick={handleNextStep1}
+                  className="w-full gradient-primary text-primary-foreground"
+                  disabled={!step1Valid || isLoading}
+                >
+                  {isLoading ? "Criando conta..." : <>Próximo <ArrowRight className="ml-2 w-4 h-4" /></>}
                 </Button>
               </div>
             )}

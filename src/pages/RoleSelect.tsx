@@ -10,7 +10,13 @@ const RoleSelect = () => {
   const navigate = useNavigate();
 
   const selectRole = async (role: "paciente" | "psicologo") => {
-    if (!user) return;
+    // Not logged in: go to login screen for that role
+    if (!user) {
+      navigate(`/auth/${role}`);
+      return;
+    }
+
+    // Logged in but no role yet: persist role and go to onboarding
     const { error } = await supabase
       .from("profiles")
       .update({ role })
