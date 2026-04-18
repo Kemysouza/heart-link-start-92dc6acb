@@ -1,34 +1,35 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams, Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Brain } from "lucide-react";
+import { Brain, ArrowLeft } from "lucide-react";
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(false);
+  const { role } = useParams<{ role: string }>();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { signUp, signIn } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
+
+  if (role !== "paciente" && role !== "psicologo") {
+    return <Navigate to="/" replace />;
+  }
+
+  const roleLabel = role === "psicologo" ? "Psicólogo(a)" : "Paciente";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      if (isLogin) {
-        await signIn(email, password);
-        toast.success("Login realizado com sucesso!");
-      } else {
-        await signUp(email, password);
-        toast.success("Cadastro realizado! Verifique seu e-mail.");
-      }
+      await signIn(email, password);
+      toast.success("Login realizado com sucesso!");
     } catch (error: any) {
-      toast.error(error.message || "Erro ao processar");
+      toast.error(error.message || "Erro ao entrar");
     } finally {
       setIsLoading(false);
     }
@@ -42,17 +43,13 @@ const Auth = () => {
             <Brain className="w-8 h-8 text-primary-foreground" />
           </div>
           <h1 className="text-3xl font-bold text-foreground">MindCare</h1>
-          <p className="text-muted-foreground mt-2">Sua plataforma de saúde mental</p>
+          <p className="text-muted-foreground mt-2">Entrar como {roleLabel}</p>
         </div>
 
         <Card className="shadow-elevated border-0">
           <CardHeader className="text-center">
-            <CardTitle className="text-xl">
-              {isLogin ? "Entrar na sua conta" : "Criar sua conta"}
-            </CardTitle>
-            <CardDescription>
-              {isLogin ? "Bem-vindo(a) de volta!" : "Comece sua jornada de bem-estar"}
-            </CardDescription>
+            <CardTitle className="text-xl">Entrar na sua conta</CardTitle>
+            <CardDescription>Bem-vindo(a) de volta!</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -72,23 +69,37 @@ const Auth = () => {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Sua senha"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  minLength={6}
                 />
               </div>
-              <Button type="submit" className="w-full gradient-primary text-primary-foreground" disabled={isLoading}>
-                {isLoading ? "Processando..." : isLogin ? "Entrar" : "Cadastrar"}
+              <Button
+                type="submit"
+                className="w-full gradient-primary text-primary-foreground"
+                disabled={isLoading}
+              >
+                {isLoading ? "Entrando..." : "Entrar"}
               </Button>
             </form>
-            <div className="mt-6 text-center">
+
+            <div className="mt-6 text-center space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Não tem conta?{" "}
+                <Link
+                  to={`/cadastro/${role}`}
+                  className="text-primary font-medium hover:underline"
+                >
+                  Criar cadastro
+                </Link>
+              </p>
               <button
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                type="button"
+                onClick={() => navigate("/")}
+                className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
-                {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Entre"}
+                <ArrowLeft className="w-3 h-3 mr-1" /> Trocar perfil
               </button>
             </div>
           </CardContent>
