@@ -22,7 +22,7 @@ const queryClient = new QueryClient();
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center gradient-soft"><div className="animate-pulse text-muted-foreground">Carregando...</div></div>;
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
 
@@ -33,10 +33,13 @@ const AppRoutes = () => {
     return <div className="min-h-screen flex items-center justify-center gradient-soft"><div className="animate-pulse text-muted-foreground">Carregando...</div></div>;
   }
 
-  // Redirect logic for authenticated users
+  // Home redirect logic
   const getHomeRedirect = () => {
-    if (!user) return <Auth />;
-    if (!profile?.role) return <Navigate to="/selecionar-perfil" replace />;
+    // Not logged in → show role selection (entry point)
+    if (!user) return <RoleSelect />;
+    // Logged in, no role yet → role selection
+    if (!profile?.role) return <RoleSelect />;
+    // Logged in with role but onboarding incomplete → onboarding
     if (!profile.onboarding_completed) {
       return <Navigate to={profile.role === "psicologo" ? "/onboarding/psicologo" : "/onboarding/paciente"} replace />;
     }
@@ -46,7 +49,9 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={getHomeRedirect()} />
-      <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
+      <Route path="/auth/:role" element={user ? <Navigate to="/" replace /> : <Auth />} />
+      <Route path="/cadastro/psicologo" element={user ? <Navigate to="/" replace /> : <PsychologistOnboarding />} />
+      <Route path="/cadastro/paciente" element={user ? <Navigate to="/" replace /> : <PatientOnboarding />} />
       <Route path="/selecionar-perfil" element={<ProtectedRoute><RoleSelect /></ProtectedRoute>} />
       <Route path="/onboarding/psicologo" element={<ProtectedRoute><PsychologistOnboarding /></ProtectedRoute>} />
       <Route path="/onboarding/paciente" element={<ProtectedRoute><PatientOnboarding /></ProtectedRoute>} />
