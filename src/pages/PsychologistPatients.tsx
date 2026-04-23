@@ -36,6 +36,15 @@ interface ConsultationData {
   payment: "pendente" | "pago" | "nao_pago";
 }
 
+interface AppointmentData {
+  id: string;
+  patient_id: string;
+  appointment_date: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+}
+
 const PsychologistPatients = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
