@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Brain, ArrowLeft, User, Award, Briefcase, Calendar, ChevronLeft, ChevronRight, MessageSquare } from "lucide-react";
+import { Brain, ArrowLeft, User, Award, Briefcase, Calendar, ChevronLeft, ChevronRight, MessageSquare, CheckCircle2, Check } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface PsychologistInfo {
@@ -31,6 +31,8 @@ const FindPsychologists = () => {
   const navigate = useNavigate();
   const [psychologists, setPsychologists] = useState<PsychologistInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   // Calendar state
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -48,7 +50,35 @@ const FindPsychologists = () => {
 
   useEffect(() => {
     fetchPsychologists();
-  }, []);
+    fetchConfirmed();
+  }, [user]);
+
+  const fetchConfirmed = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("psychologist_patients")
+      .select("psychologist_id")
+      .eq("patient_id", user.id);
+    setConfirmedIds(new Set((data || []).map((d: { psychologist_id: string }) => d.psychologist_id)));
+  };
+
+  const handleConfirmProfessional = async (psychId: string) => {
+    if (!user) return;
+    setConfirmingId(psychId);
+    try {
+      const { error } = await supabase
+        .from("psychologist_patients")
+        .insert({ psychologist_id: psychId, patient_id: user.id });
+      if (error && !error.message.includes("duplicate")) throw error;
+      setConfirmedIds((prev) => new Set(prev).add(psychId));
+      toast({ title: "Profissional confirmado!", description: "Agora você pode agendar consultas e enviar mensagens." });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Erro ao confirmar profissional", variant: "destructive" });
+    } finally {
+      setConfirmingId(null);
+    }
+  };
 
   const fetchPsychologists = async () => {
     try {
@@ -255,16 +285,33 @@ const FindPsychologists = () => {
                     </div>
                   )}
 
-                  <div className="flex gap-2">
-                    <Button className="flex-1" onClick={() => openCalendar(psych)}>
-                      <Calendar className="w-4 h-4 mr-2" />
-                      Agendar Consulta
+                  {confirmedIds.has(psych.user_id) ? (
+                    <>
+                      <div className="flex items-center gap-1.5 text-xs text-primary mb-2 font-medium">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Profissional confirmado
+                      </div>
+                      <div className="flex gap-2">
+                        <Button className="flex-1" onClick={() => openCalendar(psych)}>
+                          <Calendar className="w-4 h-4 mr-2" />
+                          Agendar Consulta
+                        </Button>
+                        <Button variant="outline" className="flex-1" onClick={() => navigate(`/chat/${psych.user_id}`)}>
+                          <MessageSquare className="w-4 h-4 mr-2" />
+                          Mensagem
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <Button
+                      className="w-full gradient-primary text-primary-foreground"
+                      onClick={() => handleConfirmProfessional(psych.user_id)}
+                      disabled={confirmingId === psych.user_id}
+                    >
+                      <Check className="w-4 h-4 mr-2" />
+                      {confirmingId === psych.user_id ? "Confirmando..." : "Confirmar este profissional"}
                     </Button>
-                    <Button variant="outline" className="flex-1" onClick={() => navigate(`/chat/${psych.user_id}`)}>
-                      <MessageSquare className="w-4 h-4 mr-2" />
-                      Mensagem
-                    </Button>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
