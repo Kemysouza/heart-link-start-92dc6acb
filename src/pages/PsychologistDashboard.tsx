@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Brain, Calendar, Users, LogOut, FileText, MessageSquare, Settings } from "lucide-react";
 import { EmailConfirmToast } from "@/components/EmailConfirmToast";
+import { supabase } from "@/integrations/supabase/client";
 
 const PsychologistDashboard = () => {
   const { user, profile, signOut } = useAuth();
