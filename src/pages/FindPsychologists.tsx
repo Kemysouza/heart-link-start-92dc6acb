@@ -31,6 +31,8 @@ const FindPsychologists = () => {
   const navigate = useNavigate();
   const [psychologists, setPsychologists] = useState<PsychologistInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   // Calendar state
   const [calendarOpen, setCalendarOpen] = useState(false);
