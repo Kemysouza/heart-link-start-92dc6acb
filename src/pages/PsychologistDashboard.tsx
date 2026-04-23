@@ -7,9 +7,11 @@ import { Brain, Calendar, Users, LogOut, FileText, MessageSquare, Settings } fro
 import { EmailConfirmToast } from "@/components/EmailConfirmToast";
 
 const PsychologistDashboard = () => {
-  const { profile, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [activePatients, setActivePatients] = useState<number>(0);
+  const [conversationsCount, setConversationsCount] = useState<number>(0);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("pending_email_confirm");
@@ -18,6 +20,29 @@ const PsychologistDashboard = () => {
       sessionStorage.removeItem("pending_email_confirm");
     }
   }, []);
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      if (!user) return;
+      const { count: patientsCount } = await supabase
+        .from("psychologist_patients")
+        .select("id", { count: "exact", head: true })
+        .eq("psychologist_id", user.id);
+      setActivePatients(patientsCount || 0);
+
+      const { data: msgs } = await supabase
+        .from("messages")
+        .select("sender_id, receiver_id")
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
+      const others = new Set<string>();
+      msgs?.forEach((m: { sender_id: string; receiver_id: string }) => {
+        const other = m.sender_id === user.id ? m.receiver_id : m.sender_id;
+        others.add(other);
+      });
+      setConversationsCount(others.size);
+    };
+    fetchCounts();
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-background">
