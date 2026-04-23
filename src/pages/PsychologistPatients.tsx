@@ -280,6 +280,16 @@ const PsychologistPatients = () => {
                               </SelectContent>
                             </Select>
                           </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(`/dashboard/psicologo/chat/${patient.user_id}`)}
+                              title="Enviar mensagem"
+                            >
+                              <MessageSquare className="w-3 h-3 mr-1" /> Enviar
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       );
                     })}
