@@ -21,6 +21,9 @@ const PatientDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {pendingEmail && (
+        <EmailConfirmToast email={pendingEmail} onClose={() => setPendingEmail(null)} />
+      )}
       <header className="border-b bg-card">
         <div className="container mx-auto flex items-center justify-between py-4 px-4">
           <div className="flex items-center gap-3">
