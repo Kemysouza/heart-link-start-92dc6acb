@@ -39,22 +39,87 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
 
-  const fetchProfile = async (userId: string) => {
+  const recoverProfile = async (authUser: User, existingProfile: Profile | null) => {
+    const [psychologistResult, patientResult] = await Promise.all([
+      supabase.from("psychologist_profiles").select("user_id").eq("user_id", authUser.id).maybeSingle(),
+      supabase.from("patient_profiles").select("user_id").eq("user_id", authUser.id).maybeSingle(),
+    ]);
+
+    const inferredRole =
+      existingProfile?.role ??
+      (psychologistResult.data ? "psicologo" : patientResult.data ? "paciente" : null);
+
+    if (!existingProfile && !inferredRole) {
+      return null;
+    }
+
+    const recoveredProfile: Profile = {
+      id: existingProfile?.id ?? authUser.id,
+      user_id: authUser.id,
+      nome_completo: existingProfile?.nome_completo ?? null,
+      email: existingProfile?.email ?? authUser.email ?? null,
+      telefone: existingProfile?.telefone ?? null,
+      role: inferredRole,
+      onboarding_completed:
+        existingProfile?.onboarding_completed ?? Boolean(psychologistResult.data || patientResult.data),
+    };
+
+    const shouldPersist =
+      !existingProfile ||
+      existingProfile.role !== recoveredProfile.role ||
+      existingProfile.onboarding_completed !== recoveredProfile.onboarding_completed ||
+      existingProfile.email !== recoveredProfile.email;
+
+    if (!shouldPersist) {
+      return recoveredProfile;
+    }
+
+    const { data: persistedProfile, error: persistError } = await supabase
+      .from("profiles")
+      .upsert(
+        {
+          user_id: recoveredProfile.user_id,
+          nome_completo: recoveredProfile.nome_completo,
+          email: recoveredProfile.email,
+          telefone: recoveredProfile.telefone,
+          role: recoveredProfile.role,
+          onboarding_completed: recoveredProfile.onboarding_completed,
+        },
+        { onConflict: "user_id" }
+      )
+      .select("*")
+      .single();
+
+    if (persistError) {
+      console.error("Error recovering profile:", persistError);
+      return recoveredProfile;
+    }
+
+    return persistedProfile as Profile;
+  };
+
+  const fetchProfile = async (authUser: User) => {
     setProfileLoading(true);
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("user_id", userId)
-        .single();
-      setProfile(data as Profile | null);
+        .eq("user_id", authUser.id)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      const resolvedProfile = await recoverProfile(authUser, (data as Profile | null) ?? null);
+      setProfile(resolvedProfile);
     } finally {
       setProfileLoading(false);
     }
   };
 
   const refreshProfile = async () => {
-    if (user) await fetchProfile(user.id);
+    if (user) await fetchProfile(user);
   };
 
   useEffect(() => {
@@ -67,7 +132,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfileLoading(true);
           // Fire-and-forget to avoid deadlocks inside the auth callback
           setTimeout(() => {
-            fetchProfile(session.user.id);
+            fetchProfile(session.user);
           }, 0);
         } else {
           setProfile(null);
@@ -82,7 +147,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
         setProfileLoading(true);
-        fetchProfile(session.user.id);
+        fetchProfile(session.user);
       }
       setLoading(false);
     });
