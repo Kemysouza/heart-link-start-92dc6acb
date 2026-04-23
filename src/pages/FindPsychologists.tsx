@@ -285,16 +285,33 @@ const FindPsychologists = () => {
                     </div>
                   )}
 
-                  <div className="flex gap-2">
-                    <Button className="flex-1" onClick={() => openCalendar(psych)}>
-                      <Calendar className="w-4 h-4 mr-2" />
-                      Agendar Consulta
+                  {confirmedIds.has(psych.user_id) ? (
+                    <>
+                      <div className="flex items-center gap-1.5 text-xs text-primary mb-2 font-medium">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Profissional confirmado
+                      </div>
+                      <div className="flex gap-2">
+                        <Button className="flex-1" onClick={() => openCalendar(psych)}>
+                          <Calendar className="w-4 h-4 mr-2" />
+                          Agendar Consulta
+                        </Button>
+                        <Button variant="outline" className="flex-1" onClick={() => navigate(`/chat/${psych.user_id}`)}>
+                          <MessageSquare className="w-4 h-4 mr-2" />
+                          Mensagem
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <Button
+                      className="w-full gradient-primary text-primary-foreground"
+                      onClick={() => handleConfirmProfessional(psych.user_id)}
+                      disabled={confirmingId === psych.user_id}
+                    >
+                      <Check className="w-4 h-4 mr-2" />
+                      {confirmingId === psych.user_id ? "Confirmando..." : "Confirmar este profissional"}
                     </Button>
-                    <Button variant="outline" className="flex-1" onClick={() => navigate(`/chat/${psych.user_id}`)}>
-                      <MessageSquare className="w-4 h-4 mr-2" />
-                      Mensagem
-                    </Button>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
