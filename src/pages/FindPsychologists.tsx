@@ -287,9 +287,9 @@ const FindPsychologists = () => {
 
                   {confirmedIds.has(psych.user_id) ? (
                     <>
-                      <div className="flex items-center gap-1.5 text-xs text-primary mb-2 font-medium">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Profissional confirmado
+                      <div className="w-full mb-3 rounded-md px-3 py-2 flex items-center justify-center gap-2 bg-green-500 text-white font-semibold shadow-[0_0_18px_rgba(34,197,94,0.65)] animate-fade-in">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Confirmado
                       </div>
                       <div className="flex gap-2">
                         <Button className="flex-1" onClick={() => openCalendar(psych)}>
