@@ -1,15 +1,29 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Brain, Calendar, Users, LogOut, FileText, MessageSquare, Settings } from "lucide-react";
+import { EmailConfirmToast } from "@/components/EmailConfirmToast";
 
 const PsychologistDashboard = () => {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem("pending_email_confirm");
+    if (stored) {
+      setPendingEmail(stored);
+      sessionStorage.removeItem("pending_email_confirm");
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
+      {pendingEmail && (
+        <EmailConfirmToast email={pendingEmail} onClose={() => setPendingEmail(null)} />
+      )}
       <header className="border-b bg-card">
         <div className="container mx-auto flex items-center justify-between py-4 px-4">
           <div className="flex items-center gap-3">
