@@ -306,6 +306,16 @@ const PsychologistPatients = () => {
                             <Button
                               size="sm"
                               variant="outline"
+                              onClick={() => { setAgendaPatient(patient); setAgendaDialogOpen(true); }}
+                              title="Ver agendamentos"
+                            >
+                              <Calendar className="w-3 h-3 mr-1" /> Ver
+                            </Button>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="outline"
                               onClick={() => navigate(`/dashboard/psicologo/chat/${patient.user_id}`)}
                               title="Enviar mensagem"
                             >
