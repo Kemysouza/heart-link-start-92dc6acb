@@ -91,7 +91,7 @@ const PsychologistDashboard = () => {
                   <Users className="w-5 h-5 text-accent-foreground" />
                 </div>
               </div>
-              <p className="text-2xl font-bold text-foreground">—</p>
+              <p className="text-2xl font-bold text-foreground">{activePatients}</p>
               <p className="text-sm text-muted-foreground">Pacientes · Ativos</p>
               <p className="text-xs text-primary mt-1">Clique para ver →</p>
             </CardContent>
