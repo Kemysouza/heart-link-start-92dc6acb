@@ -50,7 +50,35 @@ const FindPsychologists = () => {
 
   useEffect(() => {
     fetchPsychologists();
-  }, []);
+    fetchConfirmed();
+  }, [user]);
+
+  const fetchConfirmed = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("psychologist_patients")
+      .select("psychologist_id")
+      .eq("patient_id", user.id);
+    setConfirmedIds(new Set((data || []).map((d: { psychologist_id: string }) => d.psychologist_id)));
+  };
+
+  const handleConfirmProfessional = async (psychId: string) => {
+    if (!user) return;
+    setConfirmingId(psychId);
+    try {
+      const { error } = await supabase
+        .from("psychologist_patients")
+        .insert({ psychologist_id: psychId, patient_id: user.id });
+      if (error && !error.message.includes("duplicate")) throw error;
+      setConfirmedIds((prev) => new Set(prev).add(psychId));
+      toast({ title: "Profissional confirmado!", description: "Agora você pode agendar consultas e enviar mensagens." });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Erro ao confirmar profissional", variant: "destructive" });
+    } finally {
+      setConfirmingId(null);
+    }
+  };
 
   const fetchPsychologists = async () => {
     try {
