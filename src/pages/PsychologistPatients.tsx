@@ -220,6 +220,7 @@ const PsychologistPatients = () => {
                       <TableHead>Status</TableHead>
                       <TableHead>Próxima Consulta</TableHead>
                       <TableHead>Pagamento</TableHead>
+                      <TableHead>Mensagem</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
