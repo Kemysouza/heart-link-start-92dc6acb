@@ -128,6 +128,8 @@ const PatientOnboarding = () => {
       if (patientError) throw patientError;
 
       await refreshProfile();
+      const userEmail = currentUser.email || email;
+      if (userEmail) sessionStorage.setItem("pending_email_confirm", userEmail);
       toast.success("Cadastro concluído!");
       navigate("/dashboard/paciente");
     } catch (error: any) {
