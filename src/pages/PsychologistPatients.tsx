@@ -376,6 +376,57 @@ const PsychologistPatients = () => {
           </Button>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog: Agenda do paciente */}
+      <Dialog open={agendaDialogOpen} onOpenChange={setAgendaDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-primary" />
+              Agenda — {agendaPatient?.nome_completo || "Paciente"}
+            </DialogTitle>
+          </DialogHeader>
+          {agendaPatient && (() => {
+            const patientAppts = appointments.filter((a) => a.patient_id === agendaPatient.user_id);
+            if (patientAppts.length === 0) {
+              return (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Calendar className="w-10 h-10 mx-auto mb-2 opacity-40" />
+                  <p>Nenhum agendamento marcado.</p>
+                </div>
+              );
+            }
+            const formatDate = (d: string) => {
+              const [y, m, day] = d.split("-");
+              return `${day}/${m}/${y}`;
+            };
+            const formatTime = (t: string) => t.slice(0, 5);
+            return (
+              <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                {patientAppts.map((appt) => (
+                  <div key={appt.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-accent/30">
+                    <div>
+                      <p className="font-medium text-foreground">{formatDate(appt.appointment_date)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatTime(appt.start_time)} — {formatTime(appt.end_time)}
+                      </p>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded-md capitalize ${
+                      appt.status === "agendado"
+                        ? "bg-primary/15 text-primary"
+                        : appt.status === "confirmado"
+                        ? "bg-green-500/15 text-green-700 dark:text-green-300"
+                        : "bg-muted text-muted-foreground"
+                    }`}>
+                      {appt.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
