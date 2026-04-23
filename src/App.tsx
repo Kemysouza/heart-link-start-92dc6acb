@@ -42,10 +42,7 @@ const AppRoutes = () => {
     if (!profile) return <RoleSelect />;
     // Logged in with no role yet → role selection
     if (!profile.role) return <RoleSelect />;
-    // Logged in with role but onboarding incomplete → onboarding
-    if (!profile.onboarding_completed) {
-      return <Navigate to={profile.role === "psicologo" ? "/onboarding/psicologo" : "/onboarding/paciente"} replace />;
-    }
+    // Logged in with a role → go straight to the dashboard
     return <Navigate to={profile.role === "psicologo" ? "/dashboard/psicologo" : "/dashboard/paciente"} replace />;
   };
 
