@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,8 +6,16 @@ import { toast } from "sonner";
 import { Brain, User, Stethoscope } from "lucide-react";
 
 const RoleSelect = () => {
-  const { user, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
+
+  if (user && profile?.role) {
+    if (!profile.onboarding_completed) {
+      return <Navigate to={profile.role === "psicologo" ? "/onboarding/psicologo" : "/onboarding/paciente"} replace />;
+    }
+
+    return <Navigate to={profile.role === "psicologo" ? "/dashboard/psicologo" : "/dashboard/paciente"} replace />;
+  }
 
   const selectRole = async (role: "paciente" | "psicologo") => {
     // Not logged in: go to login screen for that role
