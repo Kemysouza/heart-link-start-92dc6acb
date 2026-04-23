@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Brain, ArrowLeft, Users, Download, Eye, StickyNote } from "lucide-react";
+import { Brain, ArrowLeft, Users, Download, Eye, StickyNote, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { saveAs } from "file-saver";
@@ -220,6 +220,7 @@ const PsychologistPatients = () => {
                       <TableHead>Status</TableHead>
                       <TableHead>Próxima Consulta</TableHead>
                       <TableHead>Pagamento</TableHead>
+                      <TableHead>Mensagem</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -278,6 +279,16 @@ const PsychologistPatients = () => {
                                 <SelectItem value="pendente">Pendente</SelectItem>
                               </SelectContent>
                             </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(`/dashboard/psicologo/chat/${patient.user_id}`)}
+                              title="Enviar mensagem"
+                            >
+                              <MessageSquare className="w-3 h-3 mr-1" /> Enviar
+                            </Button>
                           </TableCell>
                         </TableRow>
                       );
