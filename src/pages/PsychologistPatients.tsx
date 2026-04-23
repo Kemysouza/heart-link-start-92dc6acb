@@ -50,12 +50,15 @@ const PsychologistPatients = () => {
   const navigate = useNavigate();
   const [patients, setPatients] = useState<PatientData[]>([]);
   const [consultations, setConsultations] = useState<ConsultationData[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPatient, setSelectedPatient] = useState<PatientData | null>(null);
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [notesPatientId, setNotesPatientId] = useState<string | null>(null);
   const [newNote, setNewNote] = useState("");
   const [fichaDialogOpen, setFichaDialogOpen] = useState(false);
+  const [agendaDialogOpen, setAgendaDialogOpen] = useState(false);
+  const [agendaPatient, setAgendaPatient] = useState<PatientData | null>(null);
 
   useEffect(() => {
     if (user) fetchData();
