@@ -10,10 +10,6 @@ const RoleSelect = () => {
   const navigate = useNavigate();
 
   if (user && profile?.role) {
-    if (!profile.onboarding_completed) {
-      return <Navigate to={profile.role === "psicologo" ? "/onboarding/psicologo" : "/onboarding/paciente"} replace />;
-    }
-
     return <Navigate to={profile.role === "psicologo" ? "/dashboard/psicologo" : "/dashboard/paciente"} replace />;
   }
 
