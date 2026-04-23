@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Brain, ArrowRight, ArrowLeft } from "lucide-react";
+import { Brain, ArrowRight, ArrowLeft, LogOut } from "lucide-react";
 
 const PatientOnboarding = () => {
   const { user, refreshProfile } = useAuth();
@@ -180,6 +180,16 @@ const PatientOnboarding = () => {
             )}
           </CardContent>
         </Card>
+
+        <div className="mt-6 text-center">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/perfil")}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <LogOut className="mr-2 w-4 h-4" /> Sair e escolher outro perfil
+          </Button>
+        </div>
       </div>
     </div>
   );
