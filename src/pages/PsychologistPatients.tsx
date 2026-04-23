@@ -111,6 +111,15 @@ const PsychologistPatients = () => {
         .eq("psychologist_id", user.id);
 
       setConsultations((consults as ConsultationData[]) || []);
+
+      const { data: appts } = await supabase
+        .from("appointments")
+        .select("id, patient_id, appointment_date, start_time, end_time, status")
+        .eq("psychologist_id", user.id)
+        .order("appointment_date", { ascending: true })
+        .order("start_time", { ascending: true });
+
+      setAppointments((appts as AppointmentData[]) || []);
     }
     setLoading(false);
   };
