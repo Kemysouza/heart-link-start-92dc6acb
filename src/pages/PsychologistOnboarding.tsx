@@ -138,6 +138,8 @@ const PsychologistOnboarding = () => {
       if (psychError) throw psychError;
 
       await refreshProfile();
+      const userEmail = currentUser.email || email;
+      if (userEmail) sessionStorage.setItem("pending_email_confirm", userEmail);
       toast.success("Cadastro concluído!");
       navigate("/dashboard/psicologo");
     } catch (error: any) {
