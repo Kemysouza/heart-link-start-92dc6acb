@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Brain, ArrowLeft, User, Award, Briefcase, Calendar, ChevronLeft, ChevronRight, MessageSquare } from "lucide-react";
+import { Brain, ArrowLeft, User, Award, Briefcase, Calendar, ChevronLeft, ChevronRight, MessageSquare, CheckCircle2, Check } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface PsychologistInfo {
