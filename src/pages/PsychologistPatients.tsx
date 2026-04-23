@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Brain, ArrowLeft, Users, Download, Eye, StickyNote, MessageSquare } from "lucide-react";
+import { Brain, ArrowLeft, Users, Download, Eye, StickyNote, MessageSquare, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { saveAs } from "file-saver";
@@ -36,17 +36,29 @@ interface ConsultationData {
   payment: "pendente" | "pago" | "nao_pago";
 }
 
+interface AppointmentData {
+  id: string;
+  patient_id: string;
+  appointment_date: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+}
+
 const PsychologistPatients = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [patients, setPatients] = useState<PatientData[]>([]);
   const [consultations, setConsultations] = useState<ConsultationData[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPatient, setSelectedPatient] = useState<PatientData | null>(null);
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [notesPatientId, setNotesPatientId] = useState<string | null>(null);
   const [newNote, setNewNote] = useState("");
   const [fichaDialogOpen, setFichaDialogOpen] = useState(false);
+  const [agendaDialogOpen, setAgendaDialogOpen] = useState(false);
+  const [agendaPatient, setAgendaPatient] = useState<PatientData | null>(null);
 
   useEffect(() => {
     if (user) fetchData();
@@ -99,6 +111,15 @@ const PsychologistPatients = () => {
         .eq("psychologist_id", user.id);
 
       setConsultations((consults as ConsultationData[]) || []);
+
+      const { data: appts } = await supabase
+        .from("appointments")
+        .select("id, patient_id, appointment_date, start_time, end_time, status")
+        .eq("psychologist_id", user.id)
+        .order("appointment_date", { ascending: true })
+        .order("start_time", { ascending: true });
+
+      setAppointments((appts as AppointmentData[]) || []);
     }
     setLoading(false);
   };
@@ -220,6 +241,7 @@ const PsychologistPatients = () => {
                       <TableHead>Status</TableHead>
                       <TableHead>Próxima Consulta</TableHead>
                       <TableHead>Pagamento</TableHead>
+                      <TableHead>Agenda</TableHead>
                       <TableHead>Mensagem</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -284,6 +306,16 @@ const PsychologistPatients = () => {
                             <Button
                               size="sm"
                               variant="outline"
+                              onClick={() => { setAgendaPatient(patient); setAgendaDialogOpen(true); }}
+                              title="Ver agendamentos"
+                            >
+                              <Calendar className="w-3 h-3 mr-1" /> Ver
+                            </Button>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="outline"
                               onClick={() => navigate(`/dashboard/psicologo/chat/${patient.user_id}`)}
                               title="Enviar mensagem"
                             >
@@ -342,6 +374,57 @@ const PsychologistPatients = () => {
           <Button onClick={handleSaveNotes} className="w-full gradient-primary text-primary-foreground">
             Salvar Anotação
           </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Agenda do paciente */}
+      <Dialog open={agendaDialogOpen} onOpenChange={setAgendaDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-primary" />
+              Agenda — {agendaPatient?.nome_completo || "Paciente"}
+            </DialogTitle>
+          </DialogHeader>
+          {agendaPatient && (() => {
+            const patientAppts = appointments.filter((a) => a.patient_id === agendaPatient.user_id);
+            if (patientAppts.length === 0) {
+              return (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Calendar className="w-10 h-10 mx-auto mb-2 opacity-40" />
+                  <p>Nenhum agendamento marcado.</p>
+                </div>
+              );
+            }
+            const formatDate = (d: string) => {
+              const [y, m, day] = d.split("-");
+              return `${day}/${m}/${y}`;
+            };
+            const formatTime = (t: string) => t.slice(0, 5);
+            return (
+              <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                {patientAppts.map((appt) => (
+                  <div key={appt.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-accent/30">
+                    <div>
+                      <p className="font-medium text-foreground">{formatDate(appt.appointment_date)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatTime(appt.start_time)} — {formatTime(appt.end_time)}
+                      </p>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded-md capitalize ${
+                      appt.status === "agendado"
+                        ? "bg-primary/15 text-primary"
+                        : appt.status === "confirmado"
+                        ? "bg-green-500/15 text-green-700 dark:text-green-300"
+                        : "bg-muted text-muted-foreground"
+                    }`}>
+                      {appt.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
