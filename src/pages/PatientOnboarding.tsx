@@ -69,7 +69,14 @@ const PatientOnboarding = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center gradient-soft p-4">
+    <div className="min-h-screen flex items-center justify-center gradient-soft p-4 relative">
+      <Button
+        variant="ghost"
+        onClick={() => navigate("/perfil")}
+        className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+      >
+        <LogOut className="mr-2 w-4 h-4" /> Sair
+      </Button>
       <div className="w-full max-w-lg animate-fade-in">
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl gradient-primary mb-3">
@@ -180,16 +187,6 @@ const PatientOnboarding = () => {
             )}
           </CardContent>
         </Card>
-
-        <div className="mt-6 text-center">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/perfil")}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <LogOut className="mr-2 w-4 h-4" /> Sair e escolher outro perfil
-          </Button>
-        </div>
       </div>
     </div>
   );
