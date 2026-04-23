@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Brain, ArrowRight, ArrowLeft } from "lucide-react";
+import { Brain, ArrowRight, ArrowLeft, LogOut } from "lucide-react";
 
 const PatientOnboarding = () => {
   const { user, refreshProfile } = useAuth();
