@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useAuth } from "@/contexts/AuthContext";
@@ -70,6 +70,52 @@ const PatientOnboarding = () => {
       {label}
     </li>
   );
+
+  useEffect(() => {
+    const loadExistingPatientData = async () => {
+      if (!user) return;
+
+      const [{ data: profileData }, { data: patientData }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("nome_completo, telefone")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("patient_profiles")
+          .select("data_nascimento, genero, estado_civil, profissao, queixa_principal, historico_familiar, medicamentos, tratamentos_anteriores, expectativas")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      ]);
+
+      setNomeCompleto(profileData?.nome_completo ?? "");
+      setTelefone(profileData?.telefone ?? "");
+      setDataNascimento(patientData?.data_nascimento ?? "");
+      setGenero(patientData?.genero ?? "");
+      setEstadoCivil(patientData?.estado_civil ?? "");
+      setProfissao(patientData?.profissao ?? "");
+      setQueixaPrincipal(patientData?.queixa_principal ?? "");
+      setHistoricoFamiliar(patientData?.historico_familiar ?? "");
+      setMedicamentos(patientData?.medicamentos ?? "");
+      setTratamentosAnteriores(patientData?.tratamentos_anteriores ?? "");
+      setExpectativas(patientData?.expectativas ?? "");
+
+      const hasPersonalData = Boolean(profileData?.nome_completo && patientData?.data_nascimento);
+      const hasAnamnesis = Boolean(
+        patientData?.queixa_principal ||
+        patientData?.historico_familiar ||
+        patientData?.medicamentos ||
+        patientData?.tratamentos_anteriores ||
+        patientData?.expectativas
+      );
+
+      if (hasPersonalData && !hasAnamnesis) {
+        setStep(2);
+      }
+    };
+
+    loadExistingPatientData();
+  }, [user]);
 
   const savePatientProfile = async (userId: string, completed: boolean) => {
     const parsed = patientStep1Schema.safeParse({

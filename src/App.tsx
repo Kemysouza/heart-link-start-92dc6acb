@@ -51,7 +51,7 @@ const AppRoutes = () => {
       <Route path="/" element={getHomeRedirect()} />
       <Route path="/auth/:role" element={user ? <Navigate to="/" replace /> : <Auth />} />
       <Route path="/cadastro/psicologo" element={user ? <Navigate to="/" replace /> : <PsychologistOnboarding />} />
-      <Route path="/cadastro/paciente" element={user ? <Navigate to="/" replace /> : <PatientOnboarding />} />
+      <Route path="/cadastro/paciente" element={<PatientOnboarding />} />
       <Route path="/selecionar-perfil" element={<ProtectedRoute><RoleSelect /></ProtectedRoute>} />
       <Route path="/onboarding/psicologo" element={<ProtectedRoute><PsychologistOnboarding /></ProtectedRoute>} />
       <Route path="/onboarding/paciente" element={<ProtectedRoute><PatientOnboarding /></ProtectedRoute>} />
