@@ -124,7 +124,7 @@ const FindPsychologists = () => {
       .from("appointments")
       .select("appointment_date, start_time, end_time")
       .eq("psychologist_id", psychId)
-      .in("status", ["agendado", "confirmado"]);
+      .in("status", ["agendado", "confirmado", "indisponivel"]);
     setAppointments((data as Appointment[]) || []);
   };
 
