@@ -3,15 +3,29 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Brain, Calendar, Users, LogOut, FileText, MessageSquare, Settings } from "lucide-react";
+import { Brain, Calendar, Users, LogOut, MessageSquare, Settings } from "lucide-react";
 import { EmailConfirmToast } from "@/components/EmailConfirmToast";
 import { supabase } from "@/integrations/supabase/client";
+
+interface ActivePatientSummary {
+  user_id: string;
+  nome_completo: string | null;
+  data_nascimento: string | null;
+}
+
+const formatBirthDate = (date: string | null) => {
+  if (!date) return "Data não informada";
+  const [year, month, day] = date.split("-");
+  if (!year || !month || !day) return date;
+  return `${day}/${month}/${year}`;
+};
 
 const PsychologistDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [activePatients, setActivePatients] = useState<number>(0);
+  const [activePatientList, setActivePatientList] = useState<ActivePatientSummary[]>([]);
   const [conversationsCount, setConversationsCount] = useState<number>(0);
 
   useEffect(() => {
@@ -25,11 +39,40 @@ const PsychologistDashboard = () => {
   useEffect(() => {
     const fetchCounts = async () => {
       if (!user) return;
-      const { count: patientsCount } = await supabase
+
+      const { data: patientLinks } = await supabase
         .from("psychologist_patients")
-        .select("id", { count: "exact", head: true })
+        .select("patient_id")
         .eq("psychologist_id", user.id);
-      setActivePatients(patientsCount || 0);
+
+      const patientIds = (patientLinks || []).map((link) => link.patient_id);
+      setActivePatients(patientIds.length);
+
+      if (patientIds.length > 0) {
+        const [{ data: profiles }, { data: patientProfiles }] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("user_id, nome_completo")
+            .in("user_id", patientIds),
+          supabase
+            .from("patient_profiles")
+            .select("user_id, data_nascimento")
+            .in("user_id", patientIds),
+        ]);
+
+        const profileMap = new Map((profiles || []).map((item) => [item.user_id, item.nome_completo]));
+        const birthDateMap = new Map((patientProfiles || []).map((item) => [item.user_id, item.data_nascimento]));
+
+        setActivePatientList(
+          patientIds.map((patientId) => ({
+            user_id: patientId,
+            nome_completo: profileMap.get(patientId) || null,
+            data_nascimento: birthDateMap.get(patientId) || null,
+          }))
+        );
+      } else {
+        setActivePatientList([]);
+      }
 
       const { data: msgs } = await supabase
         .from("messages")
@@ -93,7 +136,24 @@ const PsychologistDashboard = () => {
               </div>
               <p className="text-2xl font-bold text-foreground">{activePatients}</p>
               <p className="text-sm text-muted-foreground">Pacientes · Ativos</p>
-              <p className="text-xs text-primary mt-1">Clique para ver →</p>
+              {activePatientList.length > 0 && (
+                <div className="mt-4 space-y-2 border-t border-border pt-3">
+                  {activePatientList.slice(0, 3).map((patient) => (
+                    <div key={patient.user_id} className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {patient.nome_completo || "Nome não informado"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Nascimento: {formatBirthDate(patient.data_nascimento)}
+                      </p>
+                    </div>
+                  ))}
+                  {activePatientList.length > 3 && (
+                    <p className="text-xs text-muted-foreground">+{activePatientList.length - 3} pacientes</p>
+                  )}
+                </div>
+              )}
+              <p className="text-xs text-primary mt-3">Clique para ver →</p>
             </CardContent>
           </Card>
 
@@ -155,11 +215,31 @@ const PsychologistDashboard = () => {
             <CardContent className="p-6">
               <h3 className="font-semibold text-foreground mb-1">Pacientes Recentes</h3>
               <p className="text-sm text-muted-foreground mb-4">Últimos atendimentos</p>
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                <p>Nenhum paciente ainda</p>
-                <p className="text-sm">Seus pacientes aparecerão aqui</p>
-              </div>
+              {activePatientList.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                  <p>Nenhum paciente ainda</p>
+                  <p className="text-sm">Seus pacientes aparecerão aqui</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {activePatientList.slice(0, 5).map((patient) => (
+                    <button
+                      key={patient.user_id}
+                      type="button"
+                      onClick={() => navigate("/dashboard/psicologo/pacientes")}
+                      className="w-full rounded-md border border-border px-3 py-2 text-left transition-colors hover:bg-accent"
+                    >
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {patient.nome_completo || "Nome não informado"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Nascimento: {formatBirthDate(patient.data_nascimento)}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
