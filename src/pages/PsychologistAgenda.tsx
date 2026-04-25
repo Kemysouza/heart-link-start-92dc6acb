@@ -51,6 +51,7 @@ const formatRange = (start: Date) => {
 const statusVariant = (status: string) => {
   if (status === "confirmado") return "bg-primary text-primary-foreground border-primary";
   if (status === "recusado" || status === "cancelado") return "bg-destructive/10 text-destructive border-destructive/30 line-through";
+  if (status === "indisponivel") return "bg-destructive text-destructive-foreground border-destructive";
   return "bg-accent text-accent-foreground border-accent-foreground/20";
 };
 
@@ -126,6 +127,43 @@ const PsychologistAgenda = () => {
     loadAppointments();
   };
 
+  const toggleUnavailable = async (date: Date, hour: number) => {
+    if (!user) return;
+    const iso = formatISODate(date);
+    const startTime = `${String(hour).padStart(2, "0")}:00:00`;
+    const endTime = `${String(hour + 1).padStart(2, "0")}:00:00`;
+
+    const existing = appointments.find(
+      (a) => a.appointment_date === iso && a.start_time === startTime && a.status === "indisponivel"
+    );
+
+    if (existing) {
+      const { error } = await supabase.from("appointments").delete().eq("id", existing.id);
+      if (error) {
+        toast.error("Não foi possível liberar o horário");
+        return;
+      }
+      toast.success("Horário liberado");
+      loadAppointments();
+      return;
+    }
+
+    const { error } = await supabase.from("appointments").insert({
+      psychologist_id: user.id,
+      patient_id: user.id,
+      appointment_date: iso,
+      start_time: startTime,
+      end_time: endTime,
+      status: "indisponivel",
+    });
+    if (error) {
+      toast.error("Não foi possível bloquear o horário");
+      return;
+    }
+    toast.success("Horário marcado como indisponível");
+    loadAppointments();
+  };
+
   const apptsForCell = (date: Date, hour: number) => {
     const iso = formatISODate(date);
     return appointments.filter((a) => {
@@ -176,10 +214,11 @@ const PsychologistAgenda = () => {
             <Button variant="ghost" size="icon" onClick={goNext}><ChevronRight className="w-4 h-4" /></Button>
             <span className="text-sm font-medium text-foreground ml-2">{formatRange(weekStart)}</span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
             <Badge variant="outline" className="bg-accent">Pendente</Badge>
             <Badge variant="outline" className="bg-primary text-primary-foreground border-primary">Confirmada</Badge>
             <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">Recusada</Badge>
+            <Badge variant="outline" className="bg-destructive text-destructive-foreground border-destructive">Indisponível</Badge>
           </div>
         </div>
 
