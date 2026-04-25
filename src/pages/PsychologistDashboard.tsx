@@ -1,6 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Brain, Calendar, Users, LogOut, MessageSquare, Settings } from "lucide-react";
@@ -32,6 +32,7 @@ const formatBirthDate = (date: string | null) => {
 const PsychologistDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [activePatients, setActivePatients] = useState<number>(0);
   const [activePatientList, setActivePatientList] = useState<ActivePatientSummary[]>([]);
@@ -47,8 +48,7 @@ const PsychologistDashboard = () => {
     }
   }, []);
 
-  useEffect(() => {
-    const fetchCounts = async () => {
+  const fetchCounts = useCallback(async () => {
       if (!user) return;
 
       const { data: patientLinks } = await supabase
@@ -146,9 +146,17 @@ const PsychologistDashboard = () => {
       } else {
         setUpcomingAppointments([]);
       }
-    };
-    fetchCounts();
   }, [user]);
+
+  useEffect(() => {
+    fetchCounts();
+  }, [fetchCounts, location.key]);
+
+  useEffect(() => {
+    const onFocus = () => fetchCounts();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [fetchCounts]);
 
   return (
     <div className="min-h-screen bg-background">
