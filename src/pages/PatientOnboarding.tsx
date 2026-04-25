@@ -167,13 +167,7 @@ const PatientOnboarding = () => {
           estado_civil: parsed.data.estadoCivil || null,
           profissao: parsed.data.profissao || null,
         });
-        try {
-          await signIn(email, password);
-        } catch {
-          toast.success("Cadastro criado! Verifique seu e-mail para confirmar e concluir o cadastro.");
-          navigate(`/auth/paciente`);
-          return;
-        }
+        await signIn(email, password);
       }
 
       const { data: { user: currentUser } } = await supabase.auth.getUser();
