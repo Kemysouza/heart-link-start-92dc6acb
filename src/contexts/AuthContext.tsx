@@ -18,7 +18,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   profileLoading: boolean;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, metadata?: Record<string, unknown>) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
