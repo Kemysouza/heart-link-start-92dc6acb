@@ -51,8 +51,8 @@ const PatientOnboarding = () => {
   const passwordStrong = validateStrongPassword(password) === null;
 
   const step1Valid = needsAccount
-    ? !!nomeCompleto && !!email && emailsMatch && passwordStrong && passwordsMatch
-    : !!nomeCompleto;
+    ? !!nomeCompleto && !!dataNascimento && !!email && emailsMatch && passwordStrong && passwordsMatch
+    : !!nomeCompleto && !!dataNascimento;
 
   const RuleItem = ({ ok, label }: { ok: boolean; label: string }) => (
     <li className={`flex items-center gap-2 text-xs ${ok ? "text-primary" : "text-muted-foreground"}`}>
