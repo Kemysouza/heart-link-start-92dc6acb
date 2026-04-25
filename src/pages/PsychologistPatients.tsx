@@ -212,11 +212,16 @@ const PsychologistPatients = () => {
       </header>
 
       <main className="container mx-auto p-4 md:p-8">
-        <div className="mb-6 animate-fade-in">
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Users className="w-6 h-6" /> Pacientes Ativos
-          </h1>
-          <p className="text-muted-foreground mt-1">Lista de todos os pacientes vinculados ao seu consultório</p>
+        <div className="mb-6 animate-fade-in flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <Users className="w-6 h-6" /> Pacientes Ativos
+            </h1>
+            <p className="text-muted-foreground mt-1">Lista de todos os pacientes vinculados ao seu consultório</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Atualizar lista
+          </Button>
         </div>
 
         <Card className="shadow-card border-0 animate-slide-up">
