@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Brain, ArrowLeft, Users, Download, Eye, StickyNote, MessageSquare, Calendar } from "lucide-react";
+import { Brain, ArrowLeft, Users, Download, Eye, StickyNote, MessageSquare, Calendar, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { saveAs } from "file-saver";
