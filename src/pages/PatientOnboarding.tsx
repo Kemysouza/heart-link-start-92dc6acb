@@ -184,16 +184,16 @@ const PatientOnboarding = () => {
             {step === 1 && (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Nome Completo</Label>
-                  <Input value={nomeCompleto} onChange={(e) => setNomeCompleto(e.target.value)} placeholder="Seu nome completo" />
+                  <Label>Nome Completo <span className="text-destructive">*</span></Label>
+                  <Input value={nomeCompleto} onChange={(e) => setNomeCompleto(e.target.value)} placeholder="Seu nome completo" required />
                 </div>
                 <div className="space-y-2">
                   <Label>Telefone</Label>
                   <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="(11) 99999-9999" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Data de Nascimento</Label>
-                  <Input type="date" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} />
+                  <Label>Data de Nascimento <span className="text-destructive">*</span></Label>
+                  <Input type="date" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} required />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
