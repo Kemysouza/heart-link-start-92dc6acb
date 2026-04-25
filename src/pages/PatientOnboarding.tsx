@@ -87,17 +87,23 @@ const PatientOnboarding = () => {
     }
 
     const values = parsed.data;
-    const { error: profileError } = await supabase
+    const { data: savedProfile, error: profileError } = await supabase
       .from("profiles")
-      .update({
-        nome_completo: values.nomeCompleto,
-        telefone: values.telefone || null,
-        role: "paciente",
-        onboarding_completed: completed,
-      })
-      .eq("user_id", userId);
+      .upsert(
+        {
+          user_id: userId,
+          nome_completo: values.nomeCompleto,
+          telefone: values.telefone || null,
+          role: "paciente",
+          onboarding_completed: completed,
+        },
+        { onConflict: "user_id" }
+      )
+      .select("user_id")
+      .maybeSingle();
 
     if (profileError) throw profileError;
+    if (!savedProfile) throw new Error("Não foi possível salvar o perfil do paciente");
 
     const { data: existingPatientProfile, error: findError } = await supabase
       .from("patient_profiles")
@@ -135,13 +141,36 @@ const PatientOnboarding = () => {
     if (!step1Valid) return;
     setIsLoading(true);
 
+    const parsed = patientStep1Schema.safeParse({
+      nomeCompleto,
+      telefone,
+      dataNascimento,
+      genero,
+      estadoCivil,
+      profissao,
+    });
+
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message || "Revise os dados do cadastro");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       if (needsAccount) {
-        await signUp(email, password);
+        await signUp(email, password, {
+          nome_completo: parsed.data.nomeCompleto,
+          telefone: parsed.data.telefone || null,
+          role: "paciente",
+          data_nascimento: parsed.data.dataNascimento,
+          genero: parsed.data.genero || null,
+          estado_civil: parsed.data.estadoCivil || null,
+          profissao: parsed.data.profissao || null,
+        });
         try {
           await signIn(email, password);
         } catch {
-          toast.success("Cadastro criado! Verifique seu e-mail para confirmar.");
+          toast.success("Cadastro criado! Verifique seu e-mail para confirmar e concluir o cadastro.");
           navigate(`/auth/paciente`);
           return;
         }

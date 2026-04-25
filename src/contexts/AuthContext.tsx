@@ -18,7 +18,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   profileLoading: boolean;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, metadata?: Record<string, unknown>) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -39,7 +39,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
 
+  const getMetadataString = (metadata: Record<string, unknown>, key: string, maxLength: number) => {
+    const value = metadata[key];
+    if (typeof value !== "string") return null;
+    const trimmed = value.trim();
+    if (!trimmed || trimmed.length > maxLength) return null;
+    return trimmed;
+  };
+
   const recoverProfile = async (authUser: User, existingProfile: Profile | null) => {
+    const metadata = authUser.user_metadata as Record<string, unknown>;
+    const metadataRole = metadata.role === "paciente" || metadata.role === "psicologo" ? metadata.role : null;
+    const metadataName = getMetadataString(metadata, "nome_completo", 120);
+    const metadataPhone = getMetadataString(metadata, "telefone", 30);
+    const metadataBirthDate = getMetadataString(metadata, "data_nascimento", 10);
+
     const [psychologistResult, patientResult] = await Promise.all([
       supabase.from("psychologist_profiles").select("user_id").eq("user_id", authUser.id).maybeSingle(),
       supabase.from("patient_profiles").select("user_id").eq("user_id", authUser.id).maybeSingle(),
@@ -47,6 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const inferredRole =
       existingProfile?.role ??
+      metadataRole ??
       (psychologistResult.data ? "psicologo" : patientResult.data ? "paciente" : null);
 
     if (!existingProfile && !inferredRole) {
@@ -56,9 +71,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const recoveredProfile: Profile = {
       id: existingProfile?.id ?? authUser.id,
       user_id: authUser.id,
-      nome_completo: existingProfile?.nome_completo ?? null,
+      nome_completo: existingProfile?.nome_completo ?? metadataName,
       email: existingProfile?.email ?? authUser.email ?? null,
-      telefone: existingProfile?.telefone ?? null,
+      telefone: existingProfile?.telefone ?? metadataPhone,
       role: inferredRole,
       onboarding_completed:
         existingProfile?.onboarding_completed ?? Boolean(psychologistResult.data || patientResult.data),
@@ -68,34 +83,61 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       !existingProfile ||
       existingProfile.role !== recoveredProfile.role ||
       existingProfile.onboarding_completed !== recoveredProfile.onboarding_completed ||
-      existingProfile.email !== recoveredProfile.email;
+      existingProfile.email !== recoveredProfile.email ||
+      existingProfile.nome_completo !== recoveredProfile.nome_completo ||
+      existingProfile.telefone !== recoveredProfile.telefone;
 
-    if (!shouldPersist) {
-      return recoveredProfile;
+    if (shouldPersist) {
+      const { data: persistedProfile, error: persistError } = await supabase
+        .from("profiles")
+        .upsert(
+          {
+            user_id: recoveredProfile.user_id,
+            nome_completo: recoveredProfile.nome_completo,
+            email: recoveredProfile.email,
+            telefone: recoveredProfile.telefone,
+            role: recoveredProfile.role,
+            onboarding_completed: recoveredProfile.onboarding_completed,
+          },
+          { onConflict: "user_id" }
+        )
+        .select("*")
+        .single();
+
+      if (persistError) {
+        console.error("Error recovering profile:", persistError);
+      } else {
+        recoveredProfile.id = persistedProfile.id;
+        recoveredProfile.nome_completo = persistedProfile.nome_completo;
+        recoveredProfile.email = persistedProfile.email;
+        recoveredProfile.telefone = persistedProfile.telefone;
+        recoveredProfile.role = persistedProfile.role;
+        recoveredProfile.onboarding_completed = persistedProfile.onboarding_completed;
+      }
     }
 
-    const { data: persistedProfile, error: persistError } = await supabase
-      .from("profiles")
-      .upsert(
-        {
-          user_id: recoveredProfile.user_id,
-          nome_completo: recoveredProfile.nome_completo,
-          email: recoveredProfile.email,
-          telefone: recoveredProfile.telefone,
-          role: recoveredProfile.role,
-          onboarding_completed: recoveredProfile.onboarding_completed,
-        },
-        { onConflict: "user_id" }
-      )
-      .select("*")
-      .single();
+    if (recoveredProfile.role === "paciente" && /^\d{4}-\d{2}-\d{2}$/.test(metadataBirthDate || "")) {
+      const { data: existingPatientProfile } = await supabase
+        .from("patient_profiles")
+        .select("id")
+        .eq("user_id", authUser.id)
+        .maybeSingle();
 
-    if (persistError) {
-      console.error("Error recovering profile:", persistError);
-      return recoveredProfile;
+      const patientBasics = {
+        data_nascimento: metadataBirthDate,
+        genero: getMetadataString(metadata, "genero", 40),
+        estado_civil: getMetadataString(metadata, "estado_civil", 40),
+        profissao: getMetadataString(metadata, "profissao", 100),
+      };
+
+      if (existingPatientProfile?.id) {
+        await supabase.from("patient_profiles").update(patientBasics).eq("id", existingPatientProfile.id);
+      } else {
+        await supabase.from("patient_profiles").insert({ user_id: authUser.id, ...patientBasics });
+      }
     }
 
-    return persistedProfile as Profile;
+    return recoveredProfile;
   };
 
   const fetchProfile = async (authUser: User) => {
@@ -155,12 +197,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, metadata?: Record<string, unknown>) => {
     const redirectUrl = `${window.location.origin}/`;
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: redirectUrl },
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: metadata,
+      },
     });
     if (error) throw error;
   };
