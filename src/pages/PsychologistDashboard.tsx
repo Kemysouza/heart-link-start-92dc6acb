@@ -13,6 +13,15 @@ interface ActivePatientSummary {
   data_nascimento: string | null;
 }
 
+interface UpcomingAppointment {
+  id: string;
+  patient_id: string;
+  patient_name: string;
+  appointment_date: string;
+  start_time: string;
+  end_time: string;
+}
+
 const formatBirthDate = (date: string | null) => {
   if (!date) return "Data não informada";
   const [year, month, day] = date.split("-");
@@ -28,6 +37,7 @@ const PsychologistDashboard = () => {
   const [activePatientList, setActivePatientList] = useState<ActivePatientSummary[]>([]);
   const [conversationsCount, setConversationsCount] = useState<number>(0);
   const [weekAppointments, setWeekAppointments] = useState<number>(0);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<UpcomingAppointment[]>([]);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("pending_email_confirm");
@@ -103,6 +113,39 @@ const PsychologistDashboard = () => {
         .gte("appointment_date", iso(start))
         .lte("appointment_date", iso(end));
       setWeekAppointments(appts?.length || 0);
+
+      // Próximas consultas confirmadas (a partir de hoje)
+      const today = iso(new Date());
+      const { data: confirmed } = await supabase
+        .from("appointments")
+        .select("id, patient_id, appointment_date, start_time, end_time")
+        .eq("psychologist_id", user.id)
+        .eq("status", "confirmado")
+        .gte("appointment_date", today)
+        .order("appointment_date", { ascending: true })
+        .order("start_time", { ascending: true })
+        .limit(5);
+
+      if (confirmed && confirmed.length > 0) {
+        const ids = Array.from(new Set(confirmed.map((c) => c.patient_id)));
+        const { data: confProfiles } = await supabase
+          .from("profiles")
+          .select("user_id, nome_completo")
+          .in("user_id", ids);
+        const nameMap = new Map((confProfiles || []).map((p) => [p.user_id, p.nome_completo]));
+        setUpcomingAppointments(
+          confirmed.map((c) => ({
+            id: c.id,
+            patient_id: c.patient_id,
+            patient_name: nameMap.get(c.patient_id) || "Paciente",
+            appointment_date: c.appointment_date,
+            start_time: c.start_time,
+            end_time: c.end_time,
+          }))
+        );
+      } else {
+        setUpcomingAppointments([]);
+      }
     };
     fetchCounts();
   }, [user]);
@@ -225,12 +268,42 @@ const PsychologistDashboard = () => {
           <Card className="shadow-card border-0">
             <CardContent className="p-6">
               <h3 className="font-semibold text-foreground mb-1">Próximas Consultas</h3>
-              <p className="text-sm text-muted-foreground mb-4">Agenda do dia</p>
-              <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                <p>Nenhuma consulta agendada</p>
-                <p className="text-sm">As consultas aparecerão aqui</p>
-              </div>
+              <p className="text-sm text-muted-foreground mb-4">Consultas confirmadas</p>
+              {upcomingAppointments.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Calendar className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                  <p>Nenhuma consulta agendada</p>
+                  <p className="text-sm">Confirme consultas na agenda</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {upcomingAppointments.map((appt) => {
+                    const dateLabel = new Date(appt.appointment_date + "T00:00:00").toLocaleDateString("pt-BR", {
+                      weekday: "short",
+                      day: "2-digit",
+                      month: "short",
+                    });
+                    return (
+                      <button
+                        key={appt.id}
+                        type="button"
+                        onClick={() => navigate("/dashboard/psicologo/agenda")}
+                        className="w-full flex items-center gap-3 rounded-md border border-border px-3 py-2 text-left transition-colors hover:bg-accent"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <Calendar className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate text-sm font-medium text-foreground">{appt.patient_name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {dateLabel} · {appt.start_time.slice(0, 5)} – {appt.end_time.slice(0, 5)}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
 
