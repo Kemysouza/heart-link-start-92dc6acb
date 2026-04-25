@@ -71,6 +71,52 @@ const PatientOnboarding = () => {
     </li>
   );
 
+  useEffect(() => {
+    const loadExistingPatientData = async () => {
+      if (!user) return;
+
+      const [{ data: profileData }, { data: patientData }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("nome_completo, telefone")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("patient_profiles")
+          .select("data_nascimento, genero, estado_civil, profissao, queixa_principal, historico_familiar, medicamentos, tratamentos_anteriores, expectativas")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      ]);
+
+      setNomeCompleto(profileData?.nome_completo ?? "");
+      setTelefone(profileData?.telefone ?? "");
+      setDataNascimento(patientData?.data_nascimento ?? "");
+      setGenero(patientData?.genero ?? "");
+      setEstadoCivil(patientData?.estado_civil ?? "");
+      setProfissao(patientData?.profissao ?? "");
+      setQueixaPrincipal(patientData?.queixa_principal ?? "");
+      setHistoricoFamiliar(patientData?.historico_familiar ?? "");
+      setMedicamentos(patientData?.medicamentos ?? "");
+      setTratamentosAnteriores(patientData?.tratamentos_anteriores ?? "");
+      setExpectativas(patientData?.expectativas ?? "");
+
+      const hasPersonalData = Boolean(profileData?.nome_completo && patientData?.data_nascimento);
+      const hasAnamnesis = Boolean(
+        patientData?.queixa_principal ||
+        patientData?.historico_familiar ||
+        patientData?.medicamentos ||
+        patientData?.tratamentos_anteriores ||
+        patientData?.expectativas
+      );
+
+      if (hasPersonalData && !hasAnamnesis) {
+        setStep(2);
+      }
+    };
+
+    loadExistingPatientData();
+  }, [user]);
+
   const savePatientProfile = async (userId: string, completed: boolean) => {
     const parsed = patientStep1Schema.safeParse({
       nomeCompleto,
@@ -105,34 +151,20 @@ const PatientOnboarding = () => {
     if (profileError) throw profileError;
     if (!savedProfile) throw new Error("Não foi possível salvar o perfil do paciente");
 
-    const { data: existingPatientProfile, error: findError } = await supabase
+    const { error: patientProfileError } = await supabase
       .from("patient_profiles")
-      .select("id")
-      .eq("user_id", userId)
-      .limit(1)
-      .maybeSingle();
+      .upsert(
+        {
+          user_id: userId,
+          data_nascimento: values.dataNascimento,
+          genero: values.genero || null,
+          estado_civil: values.estadoCivil || null,
+          profissao: values.profissao || null,
+        },
+        { onConflict: "user_id" }
+      );
 
-    if (findError) throw findError;
-
-    const basicPatientData = {
-      data_nascimento: values.dataNascimento,
-      genero: values.genero || null,
-      estado_civil: values.estadoCivil || null,
-      profissao: values.profissao || null,
-    };
-
-    if (existingPatientProfile?.id) {
-      const { error } = await supabase
-        .from("patient_profiles")
-        .update(basicPatientData)
-        .eq("id", existingPatientProfile.id);
-      if (error) throw error;
-    } else {
-      const { error } = await supabase
-        .from("patient_profiles")
-        .insert({ user_id: userId, ...basicPatientData });
-      if (error) throw error;
-    }
+    if (patientProfileError) throw patientProfileError;
 
     return true;
   };
