@@ -151,20 +151,34 @@ const PatientOnboarding = () => {
     if (profileError) throw profileError;
     if (!savedProfile) throw new Error("Não foi possível salvar o perfil do paciente");
 
-    const { error: patientProfileError } = await supabase
+    const { data: existingPatientProfile, error: findError } = await supabase
       .from("patient_profiles")
-      .upsert(
-        {
-          user_id: userId,
-          data_nascimento: values.dataNascimento,
-          genero: values.genero || null,
-          estado_civil: values.estadoCivil || null,
-          profissao: values.profissao || null,
-        },
-        { onConflict: "user_id" }
-      );
+      .select("id")
+      .eq("user_id", userId)
+      .limit(1)
+      .maybeSingle();
 
-    if (patientProfileError) throw patientProfileError;
+    if (findError) throw findError;
+
+    const basicPatientData = {
+      data_nascimento: values.dataNascimento,
+      genero: values.genero || null,
+      estado_civil: values.estadoCivil || null,
+      profissao: values.profissao || null,
+    };
+
+    if (existingPatientProfile?.id) {
+      const { error } = await supabase
+        .from("patient_profiles")
+        .update(basicPatientData)
+        .eq("id", existingPatientProfile.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from("patient_profiles")
+        .insert({ user_id: userId, ...basicPatientData });
+      if (error) throw error;
+    }
 
     return true;
   };
