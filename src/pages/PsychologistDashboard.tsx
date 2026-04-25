@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Brain, Calendar, Users, LogOut, MessageSquare, Settings } from "lucide-react";
 import { EmailConfirmToast } from "@/components/EmailConfirmToast";
+import { PsychologistProfileDialog } from "@/components/PsychologistProfileDialog";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ActivePatientSummary {
@@ -39,6 +40,7 @@ const PsychologistDashboard = () => {
   const [conversationsCount, setConversationsCount] = useState<number>(0);
   const [weekAppointments, setWeekAppointments] = useState<number>(0);
   const [upcomingAppointments, setUpcomingAppointments] = useState<UpcomingAppointment[]>([]);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("pending_email_confirm");
@@ -259,7 +261,10 @@ const PsychologistDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="shadow-card border-0">
+          <Card
+            className="shadow-card border-0 cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+            onClick={() => setProfileDialogOpen(true)}
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-3">
                 <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
@@ -268,9 +273,12 @@ const PsychologistDashboard = () => {
               </div>
               <p className="text-2xl font-bold text-foreground">100%</p>
               <p className="text-sm text-muted-foreground">Perfil · Completo</p>
+              <p className="text-xs text-primary mt-1">Ver e editar →</p>
             </CardContent>
           </Card>
         </div>
+
+        <PsychologistProfileDialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
 
         <div className="grid lg:grid-cols-2 gap-6">
           <Card className="shadow-card border-0">
