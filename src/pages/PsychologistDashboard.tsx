@@ -146,9 +146,17 @@ const PsychologistDashboard = () => {
       } else {
         setUpcomingAppointments([]);
       }
-    };
-    fetchCounts();
   }, [user]);
+
+  useEffect(() => {
+    fetchCounts();
+  }, [fetchCounts, location.key]);
+
+  useEffect(() => {
+    const onFocus = () => fetchCounts();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [fetchCounts]);
 
   return (
     <div className="min-h-screen bg-background">
