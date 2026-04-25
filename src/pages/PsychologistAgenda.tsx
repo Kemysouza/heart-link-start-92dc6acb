@@ -251,36 +251,50 @@ const PsychologistAgenda = () => {
                     {weekDays.map((d, i) => {
                       const cell = apptsForCell(d, hour);
                       const isToday = formatISODate(d) === todayIso;
+                      const isEmpty = cell.length === 0;
+                      const onlyUnavailable = cell.length > 0 && cell.every((c) => c.status === "indisponivel");
+                      const cellClickable = isEmpty || onlyUnavailable;
                       return (
-                        <div key={i} className={`min-h-[64px] p-1 border-r last:border-r-0 space-y-1 ${isToday ? "bg-primary/5" : ""}`}>
+                        <div
+                          key={i}
+                          onClick={cellClickable ? () => toggleUnavailable(d, hour) : undefined}
+                          className={`min-h-[64px] p-1 border-r last:border-r-0 space-y-1 ${isToday ? "bg-primary/5" : ""} ${cellClickable ? "cursor-pointer hover:bg-destructive/10 transition-colors" : ""}`}
+                          title={cellClickable ? (onlyUnavailable ? "Clique para liberar" : "Clique para marcar como indisponível") : undefined}
+                        >
                           {cell.map((a) => (
                             <div
                               key={a.id}
                               className={`rounded-md border px-2 py-1 text-xs ${statusVariant(a.status)}`}
                             >
-                              <p className="font-medium truncate">{patients[a.patient_id] || "Paciente"}</p>
-                              <p className="opacity-80">
-                                {a.start_time.slice(0, 5)} – {a.end_time.slice(0, 5)}
-                              </p>
-                              {a.status !== "confirmado" && a.status !== "recusado" && a.status !== "cancelado" && (
-                                <div className="flex gap-1 mt-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => updateStatus(a.id, "confirmado")}
-                                    className="flex-1 inline-flex items-center justify-center gap-1 rounded bg-primary text-primary-foreground hover:opacity-90 px-1 py-0.5"
-                                    title="Confirmar"
-                                  >
-                                    <Check className="w-3 h-3" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => updateStatus(a.id, "recusado")}
-                                    className="flex-1 inline-flex items-center justify-center gap-1 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 px-1 py-0.5"
-                                    title="Recusar"
-                                  >
-                                    <X className="w-3 h-3" />
-                                  </button>
-                                </div>
+                              {a.status === "indisponivel" ? (
+                                <p className="font-medium text-center">Indisponível</p>
+                              ) : (
+                                <>
+                                  <p className="font-medium truncate">{patients[a.patient_id] || "Paciente"}</p>
+                                  <p className="opacity-80">
+                                    {a.start_time.slice(0, 5)} – {a.end_time.slice(0, 5)}
+                                  </p>
+                                  {a.status !== "confirmado" && a.status !== "recusado" && a.status !== "cancelado" && (
+                                    <div className="flex gap-1 mt-1">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); updateStatus(a.id, "confirmado"); }}
+                                        className="flex-1 inline-flex items-center justify-center gap-1 rounded bg-primary text-primary-foreground hover:opacity-90 px-1 py-0.5"
+                                        title="Confirmar"
+                                      >
+                                        <Check className="w-3 h-3" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); updateStatus(a.id, "recusado"); }}
+                                        className="flex-1 inline-flex items-center justify-center gap-1 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 px-1 py-0.5"
+                                        title="Recusar"
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  )}
+                                </>
                               )}
                             </div>
                           ))}
