@@ -27,6 +27,7 @@ const PsychologistDashboard = () => {
   const [activePatients, setActivePatients] = useState<number>(0);
   const [activePatientList, setActivePatientList] = useState<ActivePatientSummary[]>([]);
   const [conversationsCount, setConversationsCount] = useState<number>(0);
+  const [weekAppointments, setWeekAppointments] = useState<number>(0);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("pending_email_confirm");
@@ -84,6 +85,24 @@ const PsychologistDashboard = () => {
         others.add(other);
       });
       setConversationsCount(others.size);
+
+      // Consultas desta semana (segunda a domingo)
+      const now = new Date();
+      const day = now.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      const start = new Date(now);
+      start.setDate(now.getDate() + diff);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const { data: appts } = await supabase
+        .from("appointments")
+        .select("id")
+        .eq("psychologist_id", user.id)
+        .gte("appointment_date", iso(start))
+        .lte("appointment_date", iso(end));
+      setWeekAppointments(appts?.length || 0);
     };
     fetchCounts();
   }, [user]);
@@ -157,15 +176,19 @@ const PsychologistDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="shadow-card border-0">
+          <Card
+            className="shadow-card border-0 cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+            onClick={() => navigate("/dashboard/psicologo/agenda")}
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-3">
                 <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
                   <Calendar className="w-5 h-5 text-accent-foreground" />
                 </div>
               </div>
-              <p className="text-2xl font-bold text-foreground">0</p>
+              <p className="text-2xl font-bold text-foreground">{weekAppointments}</p>
               <p className="text-sm text-muted-foreground">Consultas · Esta semana</p>
+              <p className="text-xs text-primary mt-1">Clique para ver →</p>
             </CardContent>
           </Card>
 
