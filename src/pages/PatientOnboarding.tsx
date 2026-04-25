@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { z } from "zod";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { Brain, ArrowRight, ArrowLeft, LogOut, Check, X } from "lucide-react";
 import { validateStrongPassword, PASSWORD_RULE_TEXT } from "@/lib/passwordValidation";
+
+const patientStep1Schema = z.object({
+  nomeCompleto: z.string().trim().min(1, "Informe o nome completo").max(120, "Nome muito longo"),
+  telefone: z.string().trim().max(30, "Telefone muito longo").optional(),
+  dataNascimento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data de nascimento"),
+  genero: z.string().trim().max(40).optional(),
+  estadoCivil: z.string().trim().max(40).optional(),
+  profissao: z.string().trim().max(100).optional(),
+});
 
 const PatientOnboarding = () => {
   const { user, signUp, signIn, signOut, refreshProfile } = useAuth();
@@ -51,8 +61,8 @@ const PatientOnboarding = () => {
   const passwordStrong = validateStrongPassword(password) === null;
 
   const step1Valid = needsAccount
-    ? !!nomeCompleto && !!dataNascimento && !!email && emailsMatch && passwordStrong && passwordsMatch
-    : !!nomeCompleto && !!dataNascimento;
+    ? !!nomeCompleto.trim() && !!dataNascimento && !!email && emailsMatch && passwordStrong && passwordsMatch
+    : !!nomeCompleto.trim() && !!dataNascimento;
 
   const RuleItem = ({ ok, label }: { ok: boolean; label: string }) => (
     <li className={`flex items-center gap-2 text-xs ${ok ? "text-primary" : "text-muted-foreground"}`}>
@@ -61,12 +71,72 @@ const PatientOnboarding = () => {
     </li>
   );
 
+  const savePatientProfile = async (userId: string, completed: boolean) => {
+    const parsed = patientStep1Schema.safeParse({
+      nomeCompleto,
+      telefone,
+      dataNascimento,
+      genero,
+      estadoCivil,
+      profissao,
+    });
+
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message || "Revise os dados do cadastro");
+      return false;
+    }
+
+    const values = parsed.data;
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({
+        nome_completo: values.nomeCompleto,
+        telefone: values.telefone || null,
+        role: "paciente",
+        onboarding_completed: completed,
+      })
+      .eq("user_id", userId);
+
+    if (profileError) throw profileError;
+
+    const { data: existingPatientProfile, error: findError } = await supabase
+      .from("patient_profiles")
+      .select("id")
+      .eq("user_id", userId)
+      .limit(1)
+      .maybeSingle();
+
+    if (findError) throw findError;
+
+    const basicPatientData = {
+      data_nascimento: values.dataNascimento,
+      genero: values.genero || null,
+      estado_civil: values.estadoCivil || null,
+      profissao: values.profissao || null,
+    };
+
+    if (existingPatientProfile?.id) {
+      const { error } = await supabase
+        .from("patient_profiles")
+        .update(basicPatientData)
+        .eq("id", existingPatientProfile.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from("patient_profiles")
+        .insert({ user_id: userId, ...basicPatientData });
+      if (error) throw error;
+    }
+
+    return true;
+  };
+
   const handleNextStep1 = async () => {
     if (!step1Valid) return;
+    setIsLoading(true);
 
-    if (needsAccount) {
-      setIsLoading(true);
-      try {
+    try {
+      if (needsAccount) {
         await signUp(email, password);
         try {
           await signIn(email, password);
@@ -75,23 +145,20 @@ const PatientOnboarding = () => {
           navigate(`/auth/paciente`);
           return;
         }
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        if (currentUser) {
-          await supabase
-            .from("profiles")
-            .update({ role: "paciente" })
-            .eq("user_id", currentUser.id);
-          await refreshProfile();
-        }
-      } catch (error: any) {
-        toast.error(error.message || "Erro ao criar conta");
-        setIsLoading(false);
-        return;
       }
+
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) throw new Error("Sessão expirada. Faça login novamente.");
+
+      const saved = await savePatientProfile(currentUser.id, false);
+      if (!saved) return;
+      await refreshProfile();
+      setStep(2);
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao salvar dados iniciais");
+    } finally {
       setIsLoading(false);
     }
-
-    setStep(2);
   };
 
   const handleSubmit = async () => {
@@ -103,29 +170,33 @@ const PatientOnboarding = () => {
     }
     setIsLoading(true);
     try {
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ nome_completo: nomeCompleto, telefone, onboarding_completed: true })
-        .eq("user_id", currentUser.id);
+      const saved = await savePatientProfile(currentUser.id, true);
+      if (!saved) return;
 
-      if (profileError) throw profileError;
-
-      const { error: patientError } = await supabase
+      const { data: existingPatientProfile, error: findError } = await supabase
         .from("patient_profiles")
-        .insert({
-          user_id: currentUser.id,
-          data_nascimento: dataNascimento || null,
-          genero,
-          estado_civil: estadoCivil,
-          profissao,
-          queixa_principal: queixaPrincipal,
-          historico_familiar: historicoFamiliar,
-          medicamentos,
-          tratamentos_anteriores: tratamentosAnteriores,
-          expectativas,
-        });
+        .select("id")
+        .eq("user_id", currentUser.id)
+        .limit(1)
+        .maybeSingle();
 
-      if (patientError) throw patientError;
+      if (findError) throw findError;
+
+      const anamnesisData = {
+        queixa_principal: queixaPrincipal || null,
+        historico_familiar: historicoFamiliar || null,
+        medicamentos: medicamentos || null,
+        tratamentos_anteriores: tratamentosAnteriores || null,
+        expectativas: expectativas || null,
+      };
+
+      if (existingPatientProfile?.id) {
+        const { error } = await supabase
+          .from("patient_profiles")
+          .update(anamnesisData)
+          .eq("id", existingPatientProfile.id);
+        if (error) throw error;
+      }
 
       await refreshProfile();
       const userEmail = currentUser.email || email;
