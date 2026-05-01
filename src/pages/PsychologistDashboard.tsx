@@ -30,6 +30,7 @@ const PsychologistDashboard = () => {
   const [stats, setStats] = useState<Stat>({ patients: 0, weekAppointments: 0, unreadMessages: 0 });
   const [upcoming, setUpcoming] = useState<UpcomingAppt[]>([]);
   const [loading, setLoading] = useState(true);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const fetchAll = useCallback(async () => {
     if (!user) return;
