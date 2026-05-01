@@ -4,8 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Brain, Calendar, Users, LogOut, MessageSquare, Clock } from "lucide-react";
+import { Brain, Calendar, Users, LogOut, MessageSquare, Clock, UserCog } from "lucide-react";
 import { toLocalDateString, addDays, formatBR } from "@/lib/datetime";
+import { PsychologistProfileDialog } from "@/components/PsychologistProfileDialog";
 
 interface Stat {
   patients: number;
