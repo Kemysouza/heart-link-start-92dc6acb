@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,15 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  Brain, ArrowLeft, User, Award, Briefcase, Calendar,
-  ChevronLeft, ChevronRight, MessageSquare,
-} from "lucide-react";
-import { toast } from "sonner";
-import {
-  toLocalDateString, toLocalTimeString, startOfWeekMonday, addDays,
-  isPastSlot, formatBR, formatBRShort, DAY_NAMES_PT,
-} from "@/lib/datetime";
+import { Brain, ArrowLeft, User, Award, Briefcase, Calendar, ChevronLeft, ChevronRight, MessageSquare, CheckCircle2, Check } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface PsychologistInfo {
   user_id: string;
@@ -24,142 +17,150 @@ interface PsychologistInfo {
   especializacoes: string[] | null;
 }
 
-interface AppointmentRow {
-  id: string;
+interface Appointment {
   appointment_date: string;
   start_time: string;
   end_time: string;
-  patient_id: string;
-  status: string;
 }
 
-interface AvailabilityRow {
-  day_of_week: number;
-  start_time: string;
-  end_time: string;
-  is_available: boolean;
-}
-
-const HOURS = Array.from({ length: 12 }, (_, i) => i + 7); // 7h..18h
-
-type SlotStatus = "free" | "busy" | "unavailable" | "past" | "mine";
+const HOURS = Array.from({ length: 12 }, (_, i) => i + 7); // 7h - 18h
+const DAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 const FindPsychologists = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-
   const [psychologists, setPsychologists] = useState<PsychologistInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
+  // Calendar state
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [selectedPsych, setSelectedPsych] = useState<PsychologistInfo | null>(null);
-  const [weekStart, setWeekStart] = useState(() => startOfWeekMonday(new Date()));
-  const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
-  const [availability, setAvailability] = useState<AvailabilityRow[]>([]);
+  const [weekStart, setWeekStart] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - d.getDay() + 1); // Monday
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [booking, setBooking] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ date: Date; hour: number } | null>(null);
-
-  // ---------- fetch ----------
-  const fetchPsychologists = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("psychologist_directory")
-        .select("user_id, nome_completo, crp, trajetoria_profissional, especializacoes");
-      if (error) throw error;
-      setPsychologists((data as PsychologistInfo[]) || []);
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao carregar psicólogos");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchCalendarData = useCallback(async (psychId: string) => {
-    const [apptsRes, availRes] = await Promise.all([
-      supabase
-        .from("appointments")
-        .select("id, appointment_date, start_time, end_time, patient_id, status")
-        .eq("psychologist_id", psychId)
-        .in("status", ["agendado", "confirmado"]),
-      supabase
-        .from("availability_slots")
-        .select("day_of_week, start_time, end_time, is_available")
-        .eq("psychologist_id", psychId)
-        .eq("is_available", true),
-    ]);
-    if (apptsRes.error) console.error(apptsRes.error);
-    if (availRes.error) console.error(availRes.error);
-    setAppointments((apptsRes.data as AppointmentRow[]) || []);
-    setAvailability((availRes.data as AvailabilityRow[]) || []);
-  }, []);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     fetchPsychologists();
-  }, [fetchPsychologists]);
+    fetchConfirmed();
+  }, [user]);
 
-  // ---------- realtime: appointments deste psicólogo ----------
-  useEffect(() => {
-    if (!selectedPsych) return;
-    const channel = supabase
-      .channel(`appts-${selectedPsych.user_id}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "appointments", filter: `psychologist_id=eq.${selectedPsych.user_id}` },
-        () => fetchCalendarData(selectedPsych.user_id),
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [selectedPsych, fetchCalendarData]);
+  const fetchConfirmed = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("psychologist_patients")
+      .select("psychologist_id")
+      .eq("patient_id", user.id);
+    setConfirmedIds(new Set((data || []).map((d: { psychologist_id: string }) => d.psychologist_id)));
+  };
 
-  // ---------- helpers ----------
+  const handleConfirmProfessional = async (psychId: string) => {
+    if (!user) return;
+    setConfirmingId(psychId);
+    try {
+      const { error } = await supabase
+        .from("psychologist_patients")
+        .insert({ psychologist_id: psychId, patient_id: user.id });
+      if (error && !error.message.includes("duplicate")) throw error;
+      setConfirmedIds((prev) => new Set(prev).add(psychId));
+      toast({ title: "Profissional confirmado!", description: "Agora você pode agendar consultas e enviar mensagens." });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Erro ao confirmar profissional", variant: "destructive" });
+    } finally {
+      setConfirmingId(null);
+    }
+  };
+
+  const fetchPsychologists = async () => {
+    try {
+      const { data: psychProfiles, error: psychError } = await supabase
+        .from("psychologist_profiles")
+        .select("user_id, crp, trajetoria_profissional, especializacoes");
+      if (psychError) throw psychError;
+      if (!psychProfiles || psychProfiles.length === 0) {
+        setPsychologists([]);
+        setLoading(false);
+        return;
+      }
+      const userIds = psychProfiles.map((p) => p.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, nome_completo")
+        .in("user_id", userIds);
+      const profileMap = new Map(profiles?.map((p) => [p.user_id, p.nome_completo]) || []);
+      setPsychologists(
+        psychProfiles.map((pp) => ({
+          user_id: pp.user_id,
+          nome_completo: profileMap.get(pp.user_id) || null,
+          crp: pp.crp,
+          trajetoria_profissional: pp.trajetoria_profissional,
+          especializacoes: pp.especializacoes,
+        }))
+      );
+    } catch {
+      toast({ title: "Erro ao carregar psicólogos", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const openCalendar = async (psych: PsychologistInfo) => {
     setSelectedPsych(psych);
     setCalendarOpen(true);
-    setSelectedSlot(null);
-    setWeekStart(startOfWeekMonday(new Date()));
     await fetchCalendarData(psych.user_id);
   };
 
-  const weekDays = useMemo(
-    () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
-    [weekStart],
-  );
+  const fetchCalendarData = async (psychId: string) => {
+    const { data } = await supabase
+      .from("appointments")
+      .select("appointment_date, start_time, end_time")
+      .eq("psychologist_id", psychId)
+      .in("status", ["agendado", "confirmado", "indisponivel"]);
+    setAppointments((data as Appointment[]) || []);
+  };
 
-  const changeWeek = (delta: number) => setWeekStart((prev) => addDays(prev, delta * 7));
+  const changeWeek = (delta: number) => {
+    setWeekStart((prev) => {
+      const d = new Date(prev);
+      d.setDate(d.getDate() + delta * 7);
+      return d;
+    });
+  };
 
-  const getSlotStatus = (date: Date, hour: number): SlotStatus => {
-    if (isPastSlot(date, hour)) return "past";
+  const getWeekDays = () => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(weekStart);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+  };
 
-    const dow = date.getDay();
-    const timeStr = toLocalTimeString(hour);
-    const timeEndStr = toLocalTimeString(hour + 1);
+  const getSlotStatus = (date: Date, hour: number): "free" | "busy" => {
+    const timeStr = `${String(hour).padStart(2, "0")}:00:00`;
+    const dateStr = date.toISOString().split("T")[0];
 
-    // 1) precisa estar dentro de uma faixa de availability
-    const inAvailability = availability.some(
-      (a) => a.day_of_week === dow && a.start_time <= timeStr && a.end_time >= timeEndStr,
+    const isBusy = appointments.some(
+      (a) => a.appointment_date === dateStr && a.start_time <= timeStr && a.end_time > timeStr
     );
-    if (!inAvailability) return "unavailable";
 
-    // 2) verifica overlap com qualquer appointment
-    const dateStr = toLocalDateString(date);
-    const conflict = appointments.find(
-      (a) => a.appointment_date === dateStr && a.start_time < timeEndStr && a.end_time > timeStr,
-    );
-    if (conflict) {
-      return conflict.patient_id === user?.id ? "mine" : "busy";
-    }
-    return "free";
+    return isBusy ? "busy" : "free";
   };
 
   const handleSlotClick = (date: Date, hour: number) => {
     const status = getSlotStatus(date, hour);
-    if (status !== "free") return;
-    if (
-      selectedSlot &&
-      toLocalDateString(selectedSlot.date) === toLocalDateString(date) &&
-      selectedSlot.hour === hour
-    ) {
+    if (status === "busy") return;
+
+    // Toggle selection: click again to deselect
+    if (selectedSlot && selectedSlot.date.toISOString() === date.toISOString() && selectedSlot.hour === hour) {
       setSelectedSlot(null);
       return;
     }
@@ -170,13 +171,13 @@ const FindPsychologists = () => {
     if (!user || !selectedPsych || !selectedSlot) return;
     setBooking(true);
     try {
-      // Vincula paciente <-> psicólogo (idempotente).
       const { data: existing } = await supabase
         .from("psychologist_patients")
         .select("id")
         .eq("psychologist_id", selectedPsych.user_id)
         .eq("patient_id", user.id)
         .maybeSingle();
+
       if (!existing) {
         await supabase.from("psychologist_patients").insert({
           psychologist_id: selectedPsych.user_id,
@@ -184,78 +185,50 @@ const FindPsychologists = () => {
         });
       }
 
-      const dateStr = toLocalDateString(selectedSlot.date);
-      const startStr = toLocalTimeString(selectedSlot.hour);
-      const endStr = toLocalTimeString(selectedSlot.hour + 1);
-
+      const dateStr = selectedSlot.date.toISOString().split("T")[0];
       const { error } = await supabase.from("appointments").insert({
         psychologist_id: selectedPsych.user_id,
         patient_id: user.id,
         appointment_date: dateStr,
-        start_time: startStr,
-        end_time: endStr,
+        start_time: `${String(selectedSlot.hour).padStart(2, "0")}:00:00`,
+        end_time: `${String(selectedSlot.hour + 1).padStart(2, "0")}:00:00`,
       });
-      if (error) {
-        // 23P01 = exclusion_violation (slot já tomado por outro)
-        if (error.code === "23P01") {
-          toast.error("Este horário acabou de ser ocupado por outro paciente");
-        } else {
-          toast.error(error.message || "Erro ao agendar");
-        }
-        await fetchCalendarData(selectedPsych.user_id);
-        return;
-      }
 
-      toast.success(`Consulta agendada para ${formatBR(selectedSlot.date)} às ${selectedSlot.hour}:00`);
+      if (error) throw error;
+
+      toast({ title: "Consulta agendada!", description: `${formatDateFull(selectedSlot.date)} às ${selectedSlot.hour}:00` });
       setSelectedSlot(null);
-      // realtime já atualiza, mas garantimos
+      setConfirmOpen(false);
       await fetchCalendarData(selectedPsych.user_id);
     } catch (err) {
       console.error(err);
-      toast.error("Erro ao agendar");
+      toast({ title: "Erro ao agendar", variant: "destructive" });
     } finally {
       setBooking(false);
     }
   };
 
-  const handleCancelMine = async (date: Date, hour: number) => {
-    if (!user || !selectedPsych) return;
-    const dateStr = toLocalDateString(date);
-    const startStr = toLocalTimeString(hour);
-    const mine = appointments.find(
-      (a) =>
-        a.appointment_date === dateStr &&
-        a.start_time === startStr &&
-        a.patient_id === user.id,
-    );
-    if (!mine) return;
-    if (!confirm("Deseja cancelar este agendamento?")) return;
-    const { error } = await supabase
-      .from("appointments")
-      .update({ status: "cancelado" })
-      .eq("id", mine.id);
-    if (error) {
-      toast.error("Erro ao cancelar");
-      return;
-    }
-    toast.success("Agendamento cancelado");
-    await fetchCalendarData(selectedPsych.user_id);
-  };
+  const weekDays = getWeekDays();
+  const formatDate = (d: Date) => `${d.getDate()}/${d.getMonth() + 1}`;
+  const formatDateFull = (d: Date) => `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 
-  // ---------- render ----------
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="container mx-auto flex items-center gap-3 py-4 px-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/paciente")}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-            <Brain className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <div>
-            <h2 className="font-semibold text-foreground">Psicólogos</h2>
-            <p className="text-xs text-muted-foreground">Profissionais disponíveis</p>
+        <div className="container mx-auto flex items-center justify-between py-4 px-4">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/paciente")}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
+                <Brain className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-foreground">Encontrar Psicólogos</h2>
+                <p className="text-xs text-muted-foreground">Profissionais disponíveis</p>
+              </div>
+            </div>
           </div>
         </div>
       </header>
@@ -276,19 +249,14 @@ const FindPsychologists = () => {
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-up">
             {psychologists.map((psych) => (
-              <Card
-                key={psych.user_id}
-                className="shadow-card border-0 hover:shadow-elevated transition-all duration-200"
-              >
+              <Card key={psych.user_id} className="shadow-card border-0 hover:shadow-elevated transition-all duration-200">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center">
                       <User className="w-6 h-6 text-accent-foreground" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground text-lg">
-                        {psych.nome_completo || "Profissional"}
-                      </h3>
+                      <h3 className="font-semibold text-foreground text-lg">{psych.nome_completo || "Profissional"}</h3>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <Award className="w-3.5 h-3.5" />
                         <span>CRP: {psych.crp}</span>
@@ -317,20 +285,33 @@ const FindPsychologists = () => {
                     </div>
                   )}
 
-                  <div className="flex gap-2">
-                    <Button className="flex-1" onClick={() => openCalendar(psych)}>
-                      <Calendar className="w-4 h-4 mr-2" />
-                      Agendar
-                    </Button>
+                  {confirmedIds.has(psych.user_id) ? (
+                    <>
+                      <div className="w-full mb-3 rounded-md px-3 py-2 flex items-center justify-center gap-2 bg-green-500 text-white font-semibold shadow-[0_0_18px_rgba(34,197,94,0.65)] animate-fade-in">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Confirmado
+                      </div>
+                      <div className="flex gap-2">
+                        <Button className="flex-1" onClick={() => openCalendar(psych)}>
+                          <Calendar className="w-4 h-4 mr-2" />
+                          Agendar Consulta
+                        </Button>
+                        <Button variant="outline" className="flex-1" onClick={() => navigate(`/chat/${psych.user_id}`)}>
+                          <MessageSquare className="w-4 h-4 mr-2" />
+                          Mensagem
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
                     <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => navigate(`/chat/${psych.user_id}`)}
+                      className="w-full gradient-primary text-primary-foreground"
+                      onClick={() => handleConfirmProfessional(psych.user_id)}
+                      disabled={confirmingId === psych.user_id}
                     >
-                      <MessageSquare className="w-4 h-4 mr-2" />
-                      Mensagem
+                      <Check className="w-4 h-4 mr-2" />
+                      {confirmingId === psych.user_id ? "Confirmando..." : "Confirmar este profissional"}
                     </Button>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -338,6 +319,7 @@ const FindPsychologists = () => {
         )}
       </main>
 
+      {/* Calendar Dialog */}
       <Dialog open={calendarOpen} onOpenChange={setCalendarOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
           <DialogHeader>
@@ -347,43 +329,46 @@ const FindPsychologists = () => {
             </DialogTitle>
           </DialogHeader>
 
+          {/* Week navigation */}
           <div className="flex items-center justify-between mb-4">
             <Button variant="outline" size="sm" onClick={() => changeWeek(-1)}>
               <ChevronLeft className="w-4 h-4" />
             </Button>
             <span className="font-medium text-foreground">
-              {formatBRShort(weekDays[0])} — {formatBRShort(weekDays[6])}
+              {formatDate(weekDays[0])} — {formatDate(weekDays[6])}
             </span>
             <Button variant="outline" size="sm" onClick={() => changeWeek(1)}>
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
 
-          <div className="flex flex-wrap gap-3 mb-3 text-xs">
-            <Legend color="bg-yellow-400/80 border-yellow-500" label="Livre" />
-            <Legend color="bg-red-400/80 border-red-500" label="Ocupado" />
-            <Legend color="bg-emerald-400/80 border-emerald-500" label="Meu agendamento" />
-            <Legend color="bg-muted border-border" label="Indisponível / passado" />
+          {/* Legend */}
+          <div className="flex gap-4 mb-3 text-xs">
+            <div className="flex items-center gap-1.5">
+              <div className="w-4 h-4 rounded bg-yellow-400/80 border border-yellow-500" />
+              <span className="text-muted-foreground">Disponível</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-4 h-4 rounded bg-red-400/80 border border-red-500" />
+              <span className="text-muted-foreground">Ocupado</span>
+            </div>
           </div>
 
-          {availability.length === 0 && (
-            <div className="mb-3 p-3 rounded-lg border border-amber-500/40 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200 text-sm">
-              Este profissional ainda não cadastrou horários disponíveis.
-            </div>
-          )}
-
+          {/* Calendar grid */}
           <div className="overflow-x-auto">
             <div className="min-w-[600px]">
+              {/* Header row */}
               <div className="grid grid-cols-8 gap-px bg-border rounded-t-lg overflow-hidden">
                 <div className="bg-card p-2 text-xs font-medium text-muted-foreground text-center">Hora</div>
                 {weekDays.map((day, i) => (
                   <div key={i} className="bg-card p-2 text-center">
-                    <p className="text-xs font-semibold text-foreground">{DAY_NAMES_PT[day.getDay()]}</p>
-                    <p className="text-xs text-muted-foreground">{formatBRShort(day)}</p>
+                    <p className="text-xs font-semibold text-foreground">{DAY_NAMES[day.getDay()]}</p>
+                    <p className="text-xs text-muted-foreground">{formatDate(day)}</p>
                   </div>
                 ))}
               </div>
 
+              {/* Time rows */}
               {HOURS.map((hour) => (
                 <div key={hour} className="grid grid-cols-8 gap-px bg-border">
                   <div className="bg-card p-2 text-xs text-muted-foreground text-center font-mono">
@@ -391,57 +376,33 @@ const FindPsychologists = () => {
                   </div>
                   {weekDays.map((day, i) => {
                     const status = getSlotStatus(day, hour);
-                    const isSelected =
-                      selectedSlot &&
-                      toLocalDateString(selectedSlot.date) === toLocalDateString(day) &&
-                      selectedSlot.hour === hour;
+                    const isPast = day < new Date() && !(day.toDateString() === new Date().toDateString() && hour >= new Date().getHours());
 
-                    const click =
-                      status === "free"
-                        ? () => handleSlotClick(day, hour)
-                        : status === "mine"
-                        ? () => handleCancelMine(day, hour)
-                        : undefined;
-
-                    const cls =
-                      isSelected
-                        ? "bg-primary/30 ring-2 ring-primary cursor-pointer"
-                        : status === "free"
-                        ? "bg-yellow-400/30 hover:bg-yellow-400/60 cursor-pointer"
-                        : status === "busy"
-                        ? "bg-red-400/30 cursor-not-allowed"
-                        : status === "mine"
-                        ? "bg-emerald-400/40 hover:bg-emerald-400/60 cursor-pointer"
-                        : "bg-muted/40 cursor-default";
+                    const isSelected = selectedSlot && selectedSlot.date.toISOString() === day.toISOString() && selectedSlot.hour === hour;
 
                     return (
                       <button
                         key={i}
-                        type="button"
-                        disabled={status === "busy" || status === "past" || status === "unavailable"}
-                        onClick={click}
-                        className={`p-2 text-xs text-center transition-colors ${cls}`}
-                        title={
-                          status === "mine"
-                            ? "Clique para cancelar"
-                            : status === "free"
-                            ? "Clique para selecionar"
+                        disabled={status === "busy" || isPast}
+                        onClick={() => handleSlotClick(day, hour)}
+                        className={`p-2 text-xs text-center transition-colors ${
+                          isSelected
+                            ? "bg-primary/30 ring-2 ring-primary cursor-pointer"
+                            : status === "free" && !isPast
+                            ? "bg-yellow-400/30 hover:bg-yellow-400/60 cursor-pointer"
                             : status === "busy"
-                            ? "Horário ocupado"
-                            : status === "past"
-                            ? "Horário passado"
-                            : "Indisponível"
-                        }
+                            ? "bg-red-400/30 cursor-not-allowed"
+                            : "bg-card cursor-default"
+                        }`}
                       >
-                        {isSelected && <span className="text-primary font-semibold">✓ Selecionado</span>}
-                        {!isSelected && status === "free" && (
+                        {isSelected && (
+                          <span className="text-primary font-semibold">✓ Selecionado</span>
+                        )}
+                        {!isSelected && status === "free" && !isPast && (
                           <span className="text-yellow-700 dark:text-yellow-300 font-medium">Livre</span>
                         )}
                         {status === "busy" && (
                           <span className="text-red-700 dark:text-red-300 font-medium">Ocupado</span>
-                        )}
-                        {status === "mine" && (
-                          <span className="text-emerald-700 dark:text-emerald-300 font-medium">Você</span>
                         )}
                       </button>
                     );
@@ -451,19 +412,19 @@ const FindPsychologists = () => {
             </div>
           </div>
 
+          {/* Confirmation bar */}
           {selectedSlot && (
             <div className="mt-4 p-4 rounded-lg border bg-accent/50">
               <p className="text-sm text-foreground mb-3">
-                Confirma o horário com <strong>{selectedPsych?.nome_completo}</strong> em{" "}
-                <strong>{formatBR(selectedSlot.date)}</strong> às{" "}
-                <strong>{selectedSlot.hour}:00</strong>?
+                Você confirma este horário com o profissional <strong>{selectedPsych?.nome_completo}</strong> no dia{" "}
+                <strong>{formatDateFull(selectedSlot.date)}</strong> às <strong>{selectedSlot.hour}:00</strong>?
               </p>
               <div className="flex gap-3">
                 <Button onClick={handleConfirmBooking} disabled={booking}>
                   {booking ? "Agendando..." : "Sim, confirmar"}
                 </Button>
                 <Button variant="outline" onClick={() => setSelectedSlot(null)}>
-                  Cancelar
+                  Não, cancelar
                 </Button>
               </div>
             </div>
@@ -473,12 +434,5 @@ const FindPsychologists = () => {
     </div>
   );
 };
-
-const Legend = ({ color, label }: { color: string; label: string }) => (
-  <div className="flex items-center gap-1.5">
-    <div className={`w-4 h-4 rounded border ${color}`} />
-    <span className="text-muted-foreground">{label}</span>
-  </div>
-);
 
 export default FindPsychologists;

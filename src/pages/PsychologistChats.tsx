@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,20 +20,29 @@ const PsychologistChats = () => {
   const [contacts, setContacts] = useState<ChatContact[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchContacts = useCallback(async () => {
+  useEffect(() => {
+    if (!user) return;
+    fetchContacts();
+
+    const channel = supabase
+      .channel("psych-inbox")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => {
+        fetchContacts();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
+
+  const fetchContacts = async () => {
     if (!user) return;
 
-    const { data: msgs, error } = await supabase
+    // Get all messages where psychologist is sender or receiver
+    const { data: msgs } = await supabase
       .from("messages")
       .select("*")
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("[Inbox] erro ao listar mensagens:", error);
-      setLoading(false);
-      return;
-    }
 
     if (!msgs || msgs.length === 0) {
       setContacts([]);
@@ -41,8 +50,8 @@ const PsychologistChats = () => {
       return;
     }
 
-    type Acc = { last_message: string; last_time: string; unread: number };
-    const contactMap = new Map<string, Acc>();
+    // Group by other user
+    const contactMap = new Map<string, { last_message: string; last_time: string; unread: number }>();
     for (const msg of msgs) {
       const otherId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
       if (!contactMap.has(otherId)) {
@@ -53,54 +62,31 @@ const PsychologistChats = () => {
         });
       }
       if (msg.receiver_id === user.id && !msg.is_read) {
-        contactMap.get(otherId)!.unread += 1;
+        const c = contactMap.get(otherId)!;
+        c.unread++;
       }
     }
 
+    // Get names
     const ids = Array.from(contactMap.keys());
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, nome_completo")
+      .in("user_id", ids);
 
-    // Busca nomes via RPC, que respeita as regras de visibilidade.
-    // Em paralelo para não serializar.
-    const nameResults = await Promise.all(
-      ids.map(async (id) => {
-        const { data } = await supabase.rpc("get_user_display_name", { target_user_id: id });
-        return [id, (data as string | null) ?? null] as const;
-      }),
-    );
-    const nameMap = new Map(nameResults);
+    const nameMap = new Map(profiles?.map((p) => [p.user_id, p.nome_completo]) || []);
 
-    const result: ChatContact[] = ids.map((id) => {
-      const acc = contactMap.get(id)!;
-      return {
-        user_id: id,
-        nome_completo: nameMap.get(id) ?? null,
-        last_message: acc.last_message,
-        last_time: acc.last_time,
-        unread_count: acc.unread,
-      };
-    });
+    const result: ChatContact[] = ids.map((id) => ({
+      user_id: id,
+      nome_completo: nameMap.get(id) || null,
+      last_message: contactMap.get(id)!.last_message,
+      last_time: contactMap.get(id)!.last_time,
+      unread_count: contactMap.get(id)!.unread,
+    }));
 
     setContacts(result);
     setLoading(false);
-  }, [user]);
-
-  useEffect(() => {
-    fetchContacts();
-    if (!user) return;
-
-    const channel = supabase
-      .channel("psych-inbox")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "messages" },
-        () => fetchContacts(),
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, fetchContacts]);
+  };
 
   const formatTime = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -146,11 +132,6 @@ const PsychologistChats = () => {
                 key={c.user_id}
                 className="border-0 shadow-card cursor-pointer hover:shadow-elevated transition-all"
                 onClick={() => navigate(`/dashboard/psicologo/chat/${c.user_id}`)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") navigate(`/dashboard/psicologo/chat/${c.user_id}`);
-                }}
               >
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center shrink-0">
@@ -158,20 +139,13 @@ const PsychologistChats = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-foreground truncate">
-                        {c.nome_completo || "Paciente"}
-                      </h3>
-                      <span className="text-xs text-muted-foreground shrink-0">
-                        {formatTime(c.last_time)}
-                      </span>
+                      <h3 className="font-semibold text-foreground truncate">{c.nome_completo || "Paciente"}</h3>
+                      <span className="text-xs text-muted-foreground shrink-0">{formatTime(c.last_time)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-sm text-muted-foreground truncate">{c.last_message}</p>
                       {c.unread_count > 0 && (
-                        <span
-                          className="ml-2 shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-semibold"
-                          aria-label={`${c.unread_count} mensagens não lidas`}
-                        >
+                        <span className="ml-2 shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-semibold">
                           {c.unread_count}
                         </span>
                       )}

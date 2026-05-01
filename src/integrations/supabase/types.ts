@@ -280,22 +280,10 @@ export type Database = {
       }
     }
     Views: {
-      psychologist_directory: {
-        Row: {
-          crp: string | null
-          especializacoes: string[] | null
-          nome_completo: string | null
-          trajetoria_profissional: string | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
-      get_user_display_name: {
-        Args: { target_user_id: string }
-        Returns: string
-      }
+      [_ in never]: never
     }
     Enums: {
       consultation_status: "em_andamento" | "finalizado" | "cancelado"

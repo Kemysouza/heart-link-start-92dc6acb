@@ -1,53 +1,30 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- TODO: Set the document title to the name of your application -->
+    <title>Lovable App</title>
+    <meta name="description" content="PLATAFORMA DE GESTÃO DE SÁUDE PARA PROFISSONAL">
+    <meta name="author" content="Lovable" />
 
-    <!-- Cache busting do HTML para evitar versão antiga em mobile/CDN -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-
-    <title>MindCare — Saúde Mental Online</title>
-    <meta name="description" content="Plataforma de acompanhamento psicológico online. Conectamos pacientes a profissionais." />
-    <meta name="theme-color" content="#33A48E" />
-
-    <!-- Open Graph / Twitter -->
-    <meta property="og:title" content="MindCare — Saúde Mental Online" />
-    <meta property="og:description" content="Plataforma de acompanhamento psicológico online." />
+    <!-- TODO: Update og:title to match your application name -->
+    
+    
     <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/afb89cf3-916c-48d5-b63b-d5af49aeeb34/id-preview-ac6e6ac5--37d1f024-f0cc-418d-a958-0d92f2d7ff8e.lovable.app-1776541132017.png">
 
-    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
-    <link rel="apple-touch-icon" href="/favicon.ico" />
-  </head>
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@Lovable" />
+    <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/afb89cf3-916c-48d5-b63b-d5af49aeeb34/id-preview-ac6e6ac5--37d1f024-f0cc-418d-a958-0d92f2d7ff8e.lovable.app-1776541132017.png">
+    <meta property="og:title" content="Lovable App">
+  <meta name="twitter:title" content="Lovable App">
+  <meta property="og:description" content="PLATAFORMA DE GESTÃO DE SÁUDE PARA PROFISSONAL">
+  <meta name="twitter:description" content="PLATAFORMA DE GESTÃO DE SÁUDE PARA PROFISSONAL">
+</head>
 
   <body>
     <div id="root"></div>
-
-    <!--
-      Kill switch defensivo: se algum service worker antigo (de uma versão
-      anterior, mesmo que esta versão não use SW) ficou registrado em
-      celulares, ele força a desregistrar e limpar caches no carregamento.
-      Pode remover quando todos os usuários tiverem aberto o app ao menos
-      uma vez após este deploy.
-    -->
-    <script>
-      (async () => {
-        try {
-          if ('serviceWorker' in navigator) {
-            const regs = await navigator.serviceWorker.getRegistrations();
-            for (const r of regs) await r.unregister();
-          }
-          if (window.caches && caches.keys) {
-            const keys = await caches.keys();
-            await Promise.all(keys.map((k) => caches.delete(k)));
-          }
-        } catch (_) { /* silencioso */ }
-      })();
-    </script>
-
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
