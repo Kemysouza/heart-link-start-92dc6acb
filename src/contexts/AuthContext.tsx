@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,8 +17,7 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
-  profileLoading: boolean;
-  signUp: (email: string, password: string, metadata?: Record<string, unknown>) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<{ needsEmailConfirmation: boolean }>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -28,7 +27,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
+  if (!context) throw new Error("useAuth deve ser usado dentro de AuthProvider");
   return context;
 };
 
@@ -37,177 +36,77 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [profileLoading, setProfileLoading] = useState(false);
 
-  const getMetadataString = (metadata: Record<string, unknown>, key: string, maxLength: number) => {
-    const value = metadata[key];
-    if (typeof value !== "string") return null;
-    const trimmed = value.trim();
-    if (!trimmed || trimmed.length > maxLength) return null;
-    return trimmed;
-  };
+  const fetchProfile = useCallback(async (userId: string) => {
+    // maybeSingle não dá erro se 0 linhas — retorna null e seguimos a vida.
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
 
-  const recoverProfile = async (authUser: User, existingProfile: Profile | null) => {
-    const metadata = authUser.user_metadata as Record<string, unknown>;
-    const metadataRole = metadata.role === "paciente" || metadata.role === "psicologo" ? metadata.role : null;
-    const metadataName = getMetadataString(metadata, "nome_completo", 120);
-    const metadataPhone = getMetadataString(metadata, "telefone", 30);
-    const metadataBirthDate = getMetadataString(metadata, "data_nascimento", 10);
-
-    const [psychologistResult, patientResult] = await Promise.all([
-      supabase.from("psychologist_profiles").select("user_id").eq("user_id", authUser.id).maybeSingle(),
-      supabase.from("patient_profiles").select("user_id").eq("user_id", authUser.id).maybeSingle(),
-    ]);
-
-    const inferredRole =
-      existingProfile?.role ??
-      metadataRole ??
-      (psychologistResult.data ? "psicologo" : patientResult.data ? "paciente" : null);
-
-    if (!existingProfile && !inferredRole) {
-      return null;
+    if (error) {
+      console.error("[Auth] Erro ao buscar profile:", error);
+      setProfile(null);
+      return;
     }
+    setProfile(data as Profile | null);
+  }, []);
 
-    const recoveredProfile: Profile = {
-      id: existingProfile?.id ?? authUser.id,
-      user_id: authUser.id,
-      nome_completo: existingProfile?.nome_completo ?? metadataName,
-      email: existingProfile?.email ?? authUser.email ?? null,
-      telefone: existingProfile?.telefone ?? metadataPhone,
-      role: inferredRole,
-      onboarding_completed:
-        existingProfile?.onboarding_completed ?? Boolean(psychologistResult.data || patientResult.data),
-    };
-
-    const shouldPersist =
-      !existingProfile ||
-      existingProfile.role !== recoveredProfile.role ||
-      existingProfile.onboarding_completed !== recoveredProfile.onboarding_completed ||
-      existingProfile.email !== recoveredProfile.email ||
-      existingProfile.nome_completo !== recoveredProfile.nome_completo ||
-      existingProfile.telefone !== recoveredProfile.telefone;
-
-    if (shouldPersist) {
-      const { data: persistedProfile, error: persistError } = await supabase
-        .from("profiles")
-        .upsert(
-          {
-            user_id: recoveredProfile.user_id,
-            nome_completo: recoveredProfile.nome_completo,
-            email: recoveredProfile.email,
-            telefone: recoveredProfile.telefone,
-            role: recoveredProfile.role,
-            onboarding_completed: recoveredProfile.onboarding_completed,
-          },
-          { onConflict: "user_id" }
-        )
-        .select("*")
-        .single();
-
-      if (persistError) {
-        console.error("Error recovering profile:", persistError);
-      } else {
-        recoveredProfile.id = persistedProfile.id;
-        recoveredProfile.nome_completo = persistedProfile.nome_completo;
-        recoveredProfile.email = persistedProfile.email;
-        recoveredProfile.telefone = persistedProfile.telefone;
-        recoveredProfile.role = persistedProfile.role;
-        recoveredProfile.onboarding_completed = persistedProfile.onboarding_completed;
-      }
-    }
-
-    if (recoveredProfile.role === "paciente" && /^\d{4}-\d{2}-\d{2}$/.test(metadataBirthDate || "")) {
-      const { data: existingPatientProfile } = await supabase
-        .from("patient_profiles")
-        .select("id")
-        .eq("user_id", authUser.id)
-        .maybeSingle();
-
-      const patientBasics = {
-        data_nascimento: metadataBirthDate,
-        genero: getMetadataString(metadata, "genero", 40),
-        estado_civil: getMetadataString(metadata, "estado_civil", 40),
-        profissao: getMetadataString(metadata, "profissao", 100),
-      };
-
-      if (existingPatientProfile?.id) {
-        await supabase.from("patient_profiles").update(patientBasics).eq("id", existingPatientProfile.id);
-      } else {
-        await supabase.from("patient_profiles").insert({ user_id: authUser.id, ...patientBasics });
-      }
-    }
-
-    return recoveredProfile;
-  };
-
-  const fetchProfile = async (authUser: User) => {
-    setProfileLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", authUser.id)
-        .maybeSingle();
-
-      if (error) {
-        throw error;
-      }
-
-      const resolvedProfile = await recoverProfile(authUser, (data as Profile | null) ?? null);
-      setProfile(resolvedProfile);
-    } finally {
-      setProfileLoading(false);
-    }
-  };
-
-  const refreshProfile = async () => {
-    if (user) await fetchProfile(user);
-  };
+  const refreshProfile = useCallback(async () => {
+    if (user) await fetchProfile(user.id);
+  }, [user, fetchProfile]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          // Mark profile as loading immediately so consumers wait
-          setProfileLoading(true);
-          // Fire-and-forget to avoid deadlocks inside the auth callback
-          setTimeout(() => {
-            fetchProfile(session.user);
-          }, 0);
-        } else {
-          setProfile(null);
-          setProfileLoading(false);
-        }
-        setLoading(false);
-      }
-    );
+    let mounted = true;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        setProfileLoading(true);
-        fetchProfile(session.user);
+    // 1) Listener para mudanças de auth (login/logout/token refresh).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      if (!mounted) return;
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
+      if (newSession?.user) {
+        // setTimeout para evitar deadlock dentro do callback do auth.
+        setTimeout(() => {
+          if (mounted) fetchProfile(newSession.user.id);
+        }, 0);
+      } else {
+        setProfile(null);
       }
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    // 2) Boot inicial.
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      if (!mounted) return;
+      setSession(initialSession);
+      setUser(initialSession?.user ?? null);
+      if (initialSession?.user) {
+        fetchProfile(initialSession.user.id).finally(() => {
+          if (mounted) setLoading(false);
+        });
+      } else {
+        setLoading(false);
+      }
+    });
 
-  const signUp = async (email: string, password: string, metadata?: Record<string, unknown>) => {
-    const redirectUrl = `${window.location.origin}/`;
-    const { error } = await supabase.auth.signUp({
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [fetchProfile]);
+
+  const signUp = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl,
-        data: metadata,
+        emailRedirectTo: `${window.location.origin}/`,
       },
     });
     if (error) throw error;
+    // Se o Supabase Auth está com "Confirm email" habilitado, session vem null.
+    return { needsEmailConfirmation: !data.session };
   };
 
   const signIn = async (email: string, password: string) => {
@@ -221,7 +120,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, profileLoading, signUp, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider
+      value={{ user, session, profile, loading, signUp, signIn, signOut, refreshProfile }}
+    >
       {children}
     </AuthContext.Provider>
   );
