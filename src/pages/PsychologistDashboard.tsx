@@ -138,7 +138,7 @@ const PsychologistDashboard = () => {
           <p className="text-muted-foreground mt-1">Resumo do seu consultório</p>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-slide-up">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8 animate-slide-up">
           <StatCard icon={Users} value={loading ? "—" : String(stats.patients)} label="Pacientes" sub="Ativos"
             onClick={() => navigate("/dashboard/psicologo/pacientes")} />
           <StatCard icon={Calendar} value={loading ? "—" : String(stats.weekAppointments)} label="Consultas" sub="Próximos 7 dias" />
@@ -146,7 +146,11 @@ const PsychologistDashboard = () => {
             onClick={() => navigate("/dashboard/psicologo/mensagens")} />
           <StatCard icon={Clock} value="" label="Disponibilidade" sub="Configurar horários"
             onClick={() => navigate("/dashboard/psicologo/disponibilidade")} />
+          <StatCard icon={UserCog} value="" label="Perfil" sub="Ver e editar"
+            onClick={() => setProfileOpen(true)} />
         </div>
+
+        <PsychologistProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
 
         <div className="grid lg:grid-cols-2 gap-6">
           <Card className="shadow-card border-0">
