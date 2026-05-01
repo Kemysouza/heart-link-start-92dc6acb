@@ -12,14 +12,20 @@ const PsychologistChatConversation = () => {
 
   useEffect(() => {
     if (!patientId) return;
+    let cancelled = false;
     supabase
-      .from("profiles")
-      .select("nome_completo")
-      .eq("user_id", patientId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.nome_completo) setPatientName(data.nome_completo);
+      .rpc("get_user_display_name", { target_user_id: patientId })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error("[Chat] erro ao obter nome:", error);
+          return;
+        }
+        if (typeof data === "string" && data) setPatientName(data);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [patientId]);
 
   if (!patientId) return null;
@@ -28,7 +34,12 @@ const PsychologistChatConversation = () => {
     <div className="h-screen flex flex-col bg-background">
       <header className="border-b bg-card shrink-0">
         <div className="container mx-auto flex items-center gap-3 py-3 px-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/psicologo/mensagens")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/dashboard/psicologo/mensagens")}
+            aria-label="Voltar"
+          >
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
