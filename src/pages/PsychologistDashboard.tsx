@@ -11,8 +11,12 @@ import { supabase } from "@/integrations/supabase/client";
 interface ActivePatientSummary {
   user_id: string;
   nome_completo: string | null;
+  email: string | null;
   data_nascimento: string | null;
 }
+
+const displayName = (p: { nome_completo: string | null; email: string | null }) =>
+  p.nome_completo?.trim() || p.email || "Nome não informado";
 
 interface UpcomingAppointment {
   id: string;
