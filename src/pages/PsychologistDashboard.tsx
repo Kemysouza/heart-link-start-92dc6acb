@@ -69,7 +69,7 @@ const PsychologistDashboard = () => {
         const [{ data: profiles }, { data: patientProfiles }] = await Promise.all([
           supabase
             .from("profiles")
-            .select("user_id, nome_completo")
+            .select("user_id, nome_completo, email")
             .in("user_id", patientIds),
           supabase
             .from("patient_profiles")
@@ -77,13 +77,14 @@ const PsychologistDashboard = () => {
             .in("user_id", patientIds),
         ]);
 
-        const profileMap = new Map((profiles || []).map((item) => [item.user_id, item.nome_completo]));
+        const profileMap = new Map((profiles || []).map((item) => [item.user_id, item]));
         const birthDateMap = new Map((patientProfiles || []).map((item) => [item.user_id, item.data_nascimento]));
 
         setActivePatientList(
           patientIds.map((patientId) => ({
             user_id: patientId,
-            nome_completo: profileMap.get(patientId) || null,
+            nome_completo: profileMap.get(patientId)?.nome_completo || null,
+            email: profileMap.get(patientId)?.email || null,
             data_nascimento: birthDateMap.get(patientId) || null,
           }))
         );
