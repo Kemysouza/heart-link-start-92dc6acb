@@ -13,6 +13,13 @@ import { toast } from "sonner";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { saveAs } from "file-saver";
 
+const formatBirthDate = (date: string | null) => {
+  if (!date) return "—";
+  const [year, month, day] = date.split("-");
+  if (!year || !month || !day) return date;
+  return `${day}/${month}/${year}`;
+};
+
 interface PatientData {
   user_id: string;
   nome_completo: string | null;
@@ -256,7 +263,7 @@ const PsychologistPatients = () => {
                       return (
                         <TableRow key={patient.user_id}>
                           <TableCell className="font-medium">{patient.nome_completo || "—"}</TableCell>
-                          <TableCell>{patient.data_nascimento || "—"}</TableCell>
+                          <TableCell>{formatBirthDate(patient.data_nascimento)}</TableCell>
                           <TableCell>
                             <div className="flex gap-1">
                               <Button size="sm" variant="outline" onClick={() => { setSelectedPatient(patient); setFichaDialogOpen(true); }} title="Ver ficha">
@@ -346,7 +353,7 @@ const PsychologistPatients = () => {
           </DialogHeader>
           {selectedPatient && (
             <div className="space-y-4 text-sm">
-              <div><strong>Data de Nascimento:</strong> {selectedPatient.data_nascimento || "—"}</div>
+              <div><strong>Data de Nascimento:</strong> {formatBirthDate(selectedPatient.data_nascimento)}</div>
               <div><strong>Gênero:</strong> {selectedPatient.genero || "—"}</div>
               <div><strong>Estado Civil:</strong> {selectedPatient.estado_civil || "—"}</div>
               <div><strong>Profissão:</strong> {selectedPatient.profissao || "—"}</div>
