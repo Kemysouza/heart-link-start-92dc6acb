@@ -218,7 +218,7 @@ const PsychologistDashboard = () => {
                   {activePatientList.slice(0, 3).map((patient) => (
                     <div key={patient.user_id} className="min-w-0">
                       <p className="truncate text-sm font-medium text-foreground">
-                        {patient.nome_completo || "Nome não informado"}
+                        {displayName(patient)}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Nascimento: {formatBirthDate(patient.data_nascimento)}
@@ -348,7 +348,7 @@ const PsychologistDashboard = () => {
                       className="w-full rounded-md border border-border px-3 py-2 text-left transition-colors hover:bg-accent"
                     >
                       <p className="truncate text-sm font-medium text-foreground">
-                        {patient.nome_completo || "Nome não informado"}
+                        {displayName(patient)}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Nascimento: {formatBirthDate(patient.data_nascimento)}
