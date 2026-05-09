@@ -78,7 +78,7 @@ const PsychologistPatients = () => {
 
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("user_id, nome_completo")
+        .select("user_id, nome_completo, email")
         .in("user_id", patientIds);
 
       const { data: patientProfiles } = await supabase
@@ -91,7 +91,7 @@ const PsychologistPatients = () => {
         const pat = patientProfiles?.find((p) => p.user_id === pid);
         return {
           user_id: pid,
-          nome_completo: prof?.nome_completo || null,
+          nome_completo: prof?.nome_completo?.trim() || prof?.email || null,
           data_nascimento: pat?.data_nascimento || null,
           genero: pat?.genero || null,
           estado_civil: pat?.estado_civil || null,

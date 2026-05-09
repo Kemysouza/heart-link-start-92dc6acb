@@ -11,8 +11,12 @@ import { supabase } from "@/integrations/supabase/client";
 interface ActivePatientSummary {
   user_id: string;
   nome_completo: string | null;
+  email: string | null;
   data_nascimento: string | null;
 }
+
+const displayName = (p: { nome_completo: string | null; email: string | null }) =>
+  p.nome_completo?.trim() || p.email || "Nome não informado";
 
 interface UpcomingAppointment {
   id: string;
@@ -65,7 +69,7 @@ const PsychologistDashboard = () => {
         const [{ data: profiles }, { data: patientProfiles }] = await Promise.all([
           supabase
             .from("profiles")
-            .select("user_id, nome_completo")
+            .select("user_id, nome_completo, email")
             .in("user_id", patientIds),
           supabase
             .from("patient_profiles")
@@ -73,13 +77,14 @@ const PsychologistDashboard = () => {
             .in("user_id", patientIds),
         ]);
 
-        const profileMap = new Map((profiles || []).map((item) => [item.user_id, item.nome_completo]));
+        const profileMap = new Map((profiles || []).map((item) => [item.user_id, item]));
         const birthDateMap = new Map((patientProfiles || []).map((item) => [item.user_id, item.data_nascimento]));
 
         setActivePatientList(
           patientIds.map((patientId) => ({
             user_id: patientId,
-            nome_completo: profileMap.get(patientId) || null,
+            nome_completo: profileMap.get(patientId)?.nome_completo || null,
+            email: profileMap.get(patientId)?.email || null,
             data_nascimento: birthDateMap.get(patientId) || null,
           }))
         );
@@ -132,9 +137,11 @@ const PsychologistDashboard = () => {
         const ids = Array.from(new Set(confirmed.map((c) => c.patient_id)));
         const { data: confProfiles } = await supabase
           .from("profiles")
-          .select("user_id, nome_completo")
+          .select("user_id, nome_completo, email")
           .in("user_id", ids);
-        const nameMap = new Map((confProfiles || []).map((p) => [p.user_id, p.nome_completo]));
+        const nameMap = new Map(
+          (confProfiles || []).map((p) => [p.user_id, displayName({ nome_completo: p.nome_completo, email: p.email })])
+        );
         setUpcomingAppointments(
           confirmed.map((c) => ({
             id: c.id,
@@ -213,7 +220,7 @@ const PsychologistDashboard = () => {
                   {activePatientList.slice(0, 3).map((patient) => (
                     <div key={patient.user_id} className="min-w-0">
                       <p className="truncate text-sm font-medium text-foreground">
-                        {patient.nome_completo || "Nome não informado"}
+                        {displayName(patient)}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Nascimento: {formatBirthDate(patient.data_nascimento)}
@@ -343,7 +350,7 @@ const PsychologistDashboard = () => {
                       className="w-full rounded-md border border-border px-3 py-2 text-left transition-colors hover:bg-accent"
                     >
                       <p className="truncate text-sm font-medium text-foreground">
-                        {patient.nome_completo || "Nome não informado"}
+                        {displayName(patient)}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Nascimento: {formatBirthDate(patient.data_nascimento)}
