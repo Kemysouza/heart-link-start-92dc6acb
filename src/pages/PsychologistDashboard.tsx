@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Brain, Calendar, Users, LogOut, MessageSquare, Settings } from "lucide-react";
 import { EmailConfirmToast } from "@/components/EmailConfirmToast";
 import { PsychologistProfileDialog } from "@/components/PsychologistProfileDialog";
+import { RevenueCard } from "@/components/RevenueCard";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ActivePatientSummary {
@@ -286,6 +287,8 @@ const PsychologistDashboard = () => {
         </div>
 
         <PsychologistProfileDialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
+
+        {user && <RevenueCard psychologistId={user.id} />}
 
         <div className="grid lg:grid-cols-2 gap-6">
           <Card className="shadow-card border-0">
