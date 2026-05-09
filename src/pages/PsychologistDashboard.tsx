@@ -137,9 +137,11 @@ const PsychologistDashboard = () => {
         const ids = Array.from(new Set(confirmed.map((c) => c.patient_id)));
         const { data: confProfiles } = await supabase
           .from("profiles")
-          .select("user_id, nome_completo")
+          .select("user_id, nome_completo, email")
           .in("user_id", ids);
-        const nameMap = new Map((confProfiles || []).map((p) => [p.user_id, p.nome_completo]));
+        const nameMap = new Map(
+          (confProfiles || []).map((p) => [p.user_id, displayName({ nome_completo: p.nome_completo, email: p.email })])
+        );
         setUpcomingAppointments(
           confirmed.map((c) => ({
             id: c.id,
