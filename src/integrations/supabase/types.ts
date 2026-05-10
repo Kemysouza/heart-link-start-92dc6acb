@@ -25,6 +25,7 @@ export type Database = {
           start_time: string
           status: string
           updated_at: string
+          valor: number | null
         }
         Insert: {
           appointment_date: string
@@ -36,6 +37,7 @@ export type Database = {
           start_time: string
           status?: string
           updated_at?: string
+          valor?: number | null
         }
         Update: {
           appointment_date?: string
@@ -47,6 +49,7 @@ export type Database = {
           start_time?: string
           status?: string
           updated_at?: string
+          valor?: number | null
         }
         Relationships: []
       }
