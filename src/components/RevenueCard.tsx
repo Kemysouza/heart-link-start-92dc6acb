@@ -22,6 +22,7 @@ interface AppointmentRow {
   patient_id: string;
   appointment_date: string;
   status: string;
+  valor: number | null;
 }
 
 interface RevenueCardProps {
@@ -87,7 +88,7 @@ export const RevenueCard = ({ psychologistId }: RevenueCardProps) => {
     const load = async () => {
       const { data: appts } = await supabase
         .from("appointments")
-        .select("patient_id, appointment_date, status")
+        .select("patient_id, appointment_date, status, valor")
         .eq("psychologist_id", psychologistId);
       const list = (appts || []).filter((a) =>
         COUNTABLE_STATUSES.includes(a.status)
@@ -138,14 +139,17 @@ export const RevenueCard = ({ psychologistId }: RevenueCardProps) => {
   }, [appointments, periodoPaciente]);
 
   const dadosPaciente = useMemo(() => {
-    const counts: Record<string, number> = {};
+    const agg: Record<string, { total: number; qtd: number }> = {};
     filteredPaciente.forEach((a) => {
-      counts[a.patient_id] = (counts[a.patient_id] || 0) + 1;
+      const v = a.valor != null ? Number(a.valor) : valorConsulta;
+      if (!agg[a.patient_id]) agg[a.patient_id] = { total: 0, qtd: 0 };
+      agg[a.patient_id].total += v;
+      agg[a.patient_id].qtd += 1;
     });
-    return Object.entries(counts)
-      .map(([id, qtd]) => ({
+    return Object.entries(agg)
+      .map(([id, { total, qtd }]) => ({
         nome: patientNames[id] || "Paciente",
-        faturamento: qtd * valorConsulta,
+        faturamento: total,
         consultas: qtd,
       }))
       .sort((a, b) => b.faturamento - a.faturamento);
@@ -163,30 +167,34 @@ export const RevenueCard = ({ psychologistId }: RevenueCardProps) => {
 
   const dadosProf = useMemo(() => {
     if (mesProf !== "todos") {
-      // Detalhar por dia do mês selecionado
-      const counts: Record<string, number> = {};
+      const agg: Record<string, { total: number; qtd: number }> = {};
       filteredProf.forEach((a) => {
         const dia = a.appointment_date.split("-")[2];
-        counts[dia] = (counts[dia] || 0) + 1;
+        const v = a.valor != null ? Number(a.valor) : valorConsulta;
+        if (!agg[dia]) agg[dia] = { total: 0, qtd: 0 };
+        agg[dia].total += v;
+        agg[dia].qtd += 1;
       });
-      return Object.entries(counts)
+      return Object.entries(agg)
         .sort(([a], [b]) => Number(a) - Number(b))
-        .map(([dia, qtd]) => ({
+        .map(([dia, { total, qtd }]) => ({
           label: `Dia ${dia}`,
-          faturamento: qtd * valorConsulta,
+          faturamento: total,
           consultas: qtd,
         }));
     }
-    // Por mês
-    const counts: Record<number, number> = {};
+    const agg: Record<number, { total: number; qtd: number }> = {};
     filteredProf.forEach((a) => {
       const m = new Date(a.appointment_date + "T00:00:00").getMonth();
-      counts[m] = (counts[m] || 0) + 1;
+      const v = a.valor != null ? Number(a.valor) : valorConsulta;
+      if (!agg[m]) agg[m] = { total: 0, qtd: 0 };
+      agg[m].total += v;
+      agg[m].qtd += 1;
     });
     return MESES.map((nome, i) => ({
       label: nome,
-      faturamento: (counts[i] || 0) * valorConsulta,
-      consultas: counts[i] || 0,
+      faturamento: agg[i]?.total || 0,
+      consultas: agg[i]?.qtd || 0,
     }));
   }, [filteredProf, mesProf, valorConsulta]);
 
