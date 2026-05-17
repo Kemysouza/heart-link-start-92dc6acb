@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Brain, ArrowLeft, User, Award, Briefcase, Calendar, ChevronLeft, ChevronRight, MessageSquare, CheckCircle2, Check } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface PsychologistInfo {
   user_id: string;
