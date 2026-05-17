@@ -253,8 +253,18 @@ const FindPsychologists = () => {
               <Card key={psych.user_id} className="shadow-card border-0 hover:shadow-elevated transition-all duration-200">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center">
-                      <User className="w-6 h-6 text-accent-foreground" />
+                    <div className={cn(
+                      "w-12 h-12 rounded-full gradient-primary flex items-center justify-center text-primary-foreground font-bold text-sm select-none shrink-0"
+                    )}>
+                      {psych.nome_completo
+                        ? psych.nome_completo
+                            .split(" ")
+                            .filter((w) => w.length > 0)
+                            .map((w) => w[0])
+                            .slice(0, 2)
+                            .join("")
+                            .toUpperCase()
+                        : <User className="w-5 h-5" />}
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground text-lg">{psych.nome_completo || "Profissional"}</h3>
