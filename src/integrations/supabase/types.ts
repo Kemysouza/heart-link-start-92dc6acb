@@ -17,10 +17,15 @@ export type Database = {
       appointments: {
         Row: {
           appointment_date: string
+          convenio: boolean
+          convenio_file_url: string | null
           created_at: string
           end_time: string
           id: string
+          imposto: boolean
+          imposto_file_url: string | null
           patient_id: string
+          payment_status: string
           psychologist_id: string
           start_time: string
           status: string
@@ -29,10 +34,15 @@ export type Database = {
         }
         Insert: {
           appointment_date: string
+          convenio?: boolean
+          convenio_file_url?: string | null
           created_at?: string
           end_time: string
           id?: string
+          imposto?: boolean
+          imposto_file_url?: string | null
           patient_id: string
+          payment_status?: string
           psychologist_id: string
           start_time: string
           status?: string
@@ -41,10 +51,15 @@ export type Database = {
         }
         Update: {
           appointment_date?: string
+          convenio?: boolean
+          convenio_file_url?: string | null
           created_at?: string
           end_time?: string
           id?: string
+          imposto?: boolean
+          imposto_file_url?: string | null
           patient_id?: string
+          payment_status?: string
           psychologist_id?: string
           start_time?: string
           status?: string
