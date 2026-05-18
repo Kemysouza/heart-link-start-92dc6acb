@@ -7,6 +7,7 @@ import { Brain, Calendar, Users, LogOut, MessageSquare, Settings } from "lucide-
 import { EmailConfirmToast } from "@/components/EmailConfirmToast";
 import { PsychologistProfileDialog } from "@/components/PsychologistProfileDialog";
 import { RevenueCard } from "@/components/RevenueCard";
+import { GestaoAtendimentoCard } from "@/components/GestaoAtendimentoCard";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ActivePatientSummary {
