@@ -23,6 +23,7 @@ interface AppointmentRow {
   appointment_date: string;
   status: string;
   valor: number | null;
+  payment_status: string;
 }
 
 interface RevenueCardProps {
@@ -88,8 +89,9 @@ export const RevenueCard = ({ psychologistId }: RevenueCardProps) => {
     const load = async () => {
       const { data: appts } = await supabase
         .from("appointments")
-        .select("patient_id, appointment_date, status, valor")
-        .eq("psychologist_id", psychologistId);
+        .select("patient_id, appointment_date, status, valor, payment_status")
+        .eq("psychologist_id", psychologistId)
+        .eq("payment_status", "pago");
       const list = (appts || []).filter((a) =>
         COUNTABLE_STATUSES.includes(a.status)
       ) as AppointmentRow[];
@@ -108,7 +110,12 @@ export const RevenueCard = ({ psychologistId }: RevenueCardProps) => {
         setPatientNames(map);
       }
     };
-    if (psychologistId) load();
+    if (psychologistId) {
+      load();
+      const handler = () => load();
+      window.addEventListener("mc:appointments-updated", handler);
+      return () => window.removeEventListener("mc:appointments-updated", handler);
+    }
   }, [psychologistId]);
 
   const anosDisponiveis = useMemo(() => {
@@ -245,7 +252,7 @@ export const RevenueCard = ({ psychologistId }: RevenueCardProps) => {
             <div>
               <h3 className="font-semibold text-foreground">Faturamento</h3>
               <p className="text-sm text-muted-foreground">
-                Acompanhe seus ganhos por paciente e por período
+                Somente consultas marcadas como pagas em Gestão de Atendimento
               </p>
             </div>
           </div>
