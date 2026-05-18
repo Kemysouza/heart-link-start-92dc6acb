@@ -89,8 +89,9 @@ export const RevenueCard = ({ psychologistId }: RevenueCardProps) => {
     const load = async () => {
       const { data: appts } = await supabase
         .from("appointments")
-        .select("patient_id, appointment_date, status, valor")
-        .eq("psychologist_id", psychologistId);
+        .select("patient_id, appointment_date, status, valor, payment_status")
+        .eq("psychologist_id", psychologistId)
+        .eq("payment_status", "pago");
       const list = (appts || []).filter((a) =>
         COUNTABLE_STATUSES.includes(a.status)
       ) as AppointmentRow[];
