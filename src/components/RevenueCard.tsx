@@ -110,7 +110,12 @@ export const RevenueCard = ({ psychologistId }: RevenueCardProps) => {
         setPatientNames(map);
       }
     };
-    if (psychologistId) load();
+    if (psychologistId) {
+      load();
+      const handler = () => load();
+      window.addEventListener("mc:appointments-updated", handler);
+      return () => window.removeEventListener("mc:appointments-updated", handler);
+    }
   }, [psychologistId]);
 
   const anosDisponiveis = useMemo(() => {
