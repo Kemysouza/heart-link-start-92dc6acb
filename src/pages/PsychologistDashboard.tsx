@@ -289,6 +289,7 @@ const PsychologistDashboard = () => {
 
         <PsychologistProfileDialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
 
+        {user && <GestaoAtendimentoCard psychologistId={user.id} />}
         {user && <RevenueCard psychologistId={user.id} />}
 
         <div className="grid lg:grid-cols-2 gap-6">
