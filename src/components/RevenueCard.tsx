@@ -252,7 +252,7 @@ export const RevenueCard = ({ psychologistId }: RevenueCardProps) => {
             <div>
               <h3 className="font-semibold text-foreground">Faturamento</h3>
               <p className="text-sm text-muted-foreground">
-                Acompanhe seus ganhos por paciente e por período
+                Somente consultas marcadas como pagas em Gestão de Atendimento
               </p>
             </div>
           </div>
