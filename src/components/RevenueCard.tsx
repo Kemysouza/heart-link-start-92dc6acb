@@ -23,6 +23,7 @@ interface AppointmentRow {
   appointment_date: string;
   status: string;
   valor: number | null;
+  payment_status: string;
 }
 
 interface RevenueCardProps {
