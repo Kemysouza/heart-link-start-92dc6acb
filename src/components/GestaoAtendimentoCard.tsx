@@ -43,8 +43,9 @@ const formatBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const PAYMENT_OPTIONS = [
-  { value: "pendente", label: "Pendente" },
   { value: "pago", label: "Pago" },
+  { value: "nao_pago", label: "Não pago" },
+  { value: "pendente", label: "Pendente" },
 ];
 
 const ACCEPTED = ".pdf,.doc,.docx,image/*";
@@ -90,7 +91,34 @@ export const GestaoAtendimentoCard = ({ psychologistId }: GestaoAtendimentoCardP
 
   useEffect(() => {
     if (psychologistId) load();
+    const handler = () => load();
+    window.addEventListener("mc:payment-updated", handler);
+    window.addEventListener("mc:appointments-updated", handler);
+    return () => {
+      window.removeEventListener("mc:payment-updated", handler);
+      window.removeEventListener("mc:appointments-updated", handler);
+    };
   }, [psychologistId, load]);
+
+  const syncConsultationPayment = async (patientId: string, payment: string) => {
+    const { data: existing } = await supabase
+      .from("consultations")
+      .select("id")
+      .eq("psychologist_id", psychologistId)
+      .eq("patient_id", patientId)
+      .maybeSingle();
+    if (existing) {
+      await supabase
+        .from("consultations")
+        .update({ payment: payment as "pago" | "nao_pago" | "pendente" })
+        .eq("id", existing.id);
+    } else {
+      await supabase
+        .from("consultations")
+        .insert([{ psychologist_id: psychologistId, patient_id: patientId, payment: payment as "pago" | "nao_pago" | "pendente" }]);
+    }
+    window.dispatchEvent(new CustomEvent("mc:payment-updated"));
+  };
 
   const persistDefault = (v: number) => {
     setDefaultValor(v);
@@ -107,6 +135,10 @@ export const GestaoAtendimentoCard = ({ psychologistId }: GestaoAtendimentoCardP
     }
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
     window.dispatchEvent(new CustomEvent("mc:appointments-updated"));
+    if (patch.payment_status) {
+      const row = rows.find((r) => r.id === id);
+      if (row) await syncConsultationPayment(row.patient_id, patch.payment_status);
+    }
   };
 
   const handleValorBlur = (row: Row, raw: string) => {
