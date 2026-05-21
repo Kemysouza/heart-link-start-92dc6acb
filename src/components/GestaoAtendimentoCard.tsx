@@ -91,7 +91,34 @@ export const GestaoAtendimentoCard = ({ psychologistId }: GestaoAtendimentoCardP
 
   useEffect(() => {
     if (psychologistId) load();
+    const handler = () => load();
+    window.addEventListener("mc:payment-updated", handler);
+    window.addEventListener("mc:appointments-updated", handler);
+    return () => {
+      window.removeEventListener("mc:payment-updated", handler);
+      window.removeEventListener("mc:appointments-updated", handler);
+    };
   }, [psychologistId, load]);
+
+  const syncConsultationPayment = async (patientId: string, payment: string) => {
+    const { data: existing } = await supabase
+      .from("consultations")
+      .select("id")
+      .eq("psychologist_id", psychologistId)
+      .eq("patient_id", patientId)
+      .maybeSingle();
+    if (existing) {
+      await supabase
+        .from("consultations")
+        .update({ payment: payment as "pago" | "nao_pago" | "pendente" })
+        .eq("id", existing.id);
+    } else {
+      await supabase
+        .from("consultations")
+        .insert([{ psychologist_id: psychologistId, patient_id: patientId, payment: payment as "pago" | "nao_pago" | "pendente" }]);
+    }
+    window.dispatchEvent(new CustomEvent("mc:payment-updated"));
+  };
 
   const persistDefault = (v: number) => {
     setDefaultValor(v);
