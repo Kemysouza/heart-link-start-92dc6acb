@@ -43,8 +43,9 @@ const formatBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const PAYMENT_OPTIONS = [
-  { value: "pendente", label: "Pendente" },
   { value: "pago", label: "Pago" },
+  { value: "nao_pago", label: "Não pago" },
+  { value: "pendente", label: "Pendente" },
 ];
 
 const ACCEPTED = ".pdf,.doc,.docx,image/*";
