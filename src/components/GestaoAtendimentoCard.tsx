@@ -135,6 +135,10 @@ export const GestaoAtendimentoCard = ({ psychologistId }: GestaoAtendimentoCardP
     }
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
     window.dispatchEvent(new CustomEvent("mc:appointments-updated"));
+    if (patch.payment_status) {
+      const row = rows.find((r) => r.id === id);
+      if (row) await syncConsultationPayment(row.patient_id, patch.payment_status);
+    }
   };
 
   const handleValorBlur = (row: Row, raw: string) => {
