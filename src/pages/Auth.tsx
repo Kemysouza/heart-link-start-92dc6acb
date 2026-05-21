@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams, Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,9 +28,29 @@ const Auth = () => {
     setIsLoading(true);
     try {
       await signIn(email, password);
+
+      // Verify the account's role matches the role of the login screen
+      const { data: sessionData } = await supabase.auth.getSession();
+      const uid = sessionData.session?.user.id;
+      if (uid) {
+        const { data: profileRow } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("user_id", uid)
+          .maybeSingle();
+
+        if (profileRow?.role && profileRow.role !== role) {
+          await supabase.auth.signOut();
+          toast.error(
+            "Esta conta não foi possível reconhecer neste perfil. Tente outra conta, verifique e-mail e senha, ou entre pelo perfil correto."
+          );
+          return;
+        }
+      }
+
       toast.success("Login realizado com sucesso!");
     } catch (error: any) {
-      toast.error(error.message || "Erro ao entrar");
+      toast.error(error.message || "Verifique seu e-mail e senha e tente novamente.");
     } finally {
       setIsLoading(false);
     }
