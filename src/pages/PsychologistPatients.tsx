@@ -71,6 +71,16 @@ const PsychologistPatients = () => {
     if (user) fetchData();
   }, [user]);
 
+  useEffect(() => {
+    const handler = () => { if (user) fetchData(); };
+    window.addEventListener("mc:payment-updated", handler);
+    window.addEventListener("mc:appointments-updated", handler);
+    return () => {
+      window.removeEventListener("mc:payment-updated", handler);
+      window.removeEventListener("mc:appointments-updated", handler);
+    };
+  }, [user]);
+
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
