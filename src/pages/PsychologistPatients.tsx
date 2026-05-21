@@ -314,7 +314,19 @@ const PsychologistPatients = () => {
                           <TableCell>
                             <Select
                               value={consultation?.payment || "pendente"}
-                              onValueChange={(v) => upsertConsultation(patient.user_id, { payment: v as "pendente" | "pago" | "nao_pago" }).then(() => toast.success("Pagamento atualizado!"))}
+                              onValueChange={async (v) => {
+                                await upsertConsultation(patient.user_id, { payment: v as "pendente" | "pago" | "nao_pago" });
+                                if (user) {
+                                  await supabase
+                                    .from("appointments")
+                                    .update({ payment_status: v })
+                                    .eq("psychologist_id", user.id)
+                                    .eq("patient_id", patient.user_id);
+                                }
+                                window.dispatchEvent(new CustomEvent("mc:payment-updated"));
+                                window.dispatchEvent(new CustomEvent("mc:appointments-updated"));
+                                toast.success("Pagamento atualizado!");
+                              }}
                             >
                               <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue /></SelectTrigger>
                               <SelectContent>
