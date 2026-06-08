@@ -120,7 +120,11 @@ const PsychologistAgenda = () => {
   const updateStatus = async (id: string, status: "confirmado" | "recusado") => {
     const { error } = await supabase.from("appointments").update({ status }).eq("id", id);
     if (error) {
-      toast.error("Não foi possível atualizar");
+      if (String(error.message).includes("Conflito de agenda")) {
+        toast.error("Conflito: já existe outro atendimento neste horário");
+      } else {
+        toast.error("Não foi possível atualizar");
+      }
       return;
     }
     toast.success(status === "confirmado" ? "Consulta confirmada!" : "Consulta recusada");
@@ -157,7 +161,11 @@ const PsychologistAgenda = () => {
       status: "indisponivel",
     });
     if (error) {
-      toast.error("Não foi possível bloquear o horário");
+      if (String(error.message).includes("Conflito de agenda")) {
+        toast.error("Você já tem um atendimento neste horário");
+      } else {
+        toast.error("Não foi possível bloquear o horário");
+      }
       return;
     }
     toast.success("Horário marcado como indisponível");

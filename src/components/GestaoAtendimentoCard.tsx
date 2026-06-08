@@ -37,6 +37,7 @@ interface Row {
   convenio_file_url: string | null;
   imposto: boolean;
   imposto_file_url: string | null;
+  tipo: string;
 }
 
 const formatBRL = (n: number) =>
@@ -65,7 +66,7 @@ export const GestaoAtendimentoCard = ({ psychologistId }: GestaoAtendimentoCardP
     const { data } = await supabase
       .from("appointments")
       .select(
-        "id, patient_id, appointment_date, start_time, valor, payment_status, convenio, convenio_file_url, imposto, imposto_file_url, status"
+        "id, patient_id, appointment_date, start_time, valor, payment_status, convenio, convenio_file_url, imposto, imposto_file_url, status, tipo"
       )
       .eq("psychologist_id", psychologistId)
       .neq("status", "indisponivel")
@@ -130,7 +131,16 @@ export const GestaoAtendimentoCard = ({ psychologistId }: GestaoAtendimentoCardP
     const { error } = await supabase.from("appointments").update(patch).eq("id", id);
     setSavingId(null);
     if (error) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      const msg = String(error.message || "");
+      if (msg.includes("Conflito de agenda")) {
+        toast({
+          title: "Conflito de agenda",
+          description: "Já existe outro atendimento neste horário. Marque como 'Grupo' nos dois atendimentos para permitir simultaneidade.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      }
       return;
     }
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
@@ -254,6 +264,7 @@ export const GestaoAtendimentoCard = ({ psychologistId }: GestaoAtendimentoCardP
                 <TableRow>
                   <TableHead>Paciente</TableHead>
                   <TableHead>Dia</TableHead>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>Pagamento</TableHead>
                   <TableHead className="w-[130px]">Valor (R$)</TableHead>
                   <TableHead>Convênio</TableHead>
@@ -273,6 +284,20 @@ export const GestaoAtendimentoCard = ({ psychologistId }: GestaoAtendimentoCardP
                       </TableCell>
                       <TableCell>
                         {dateLabel} <span className="text-muted-foreground">{r.start_time?.slice(0, 5)}</span>
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={r.tipo || "individual"}
+                          onValueChange={(v) => updateRow(r.id, { tipo: v })}
+                        >
+                          <SelectTrigger className="h-8 w-[120px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="individual">Individual</SelectItem>
+                            <SelectItem value="grupo">Grupo</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell>
                         <Select
