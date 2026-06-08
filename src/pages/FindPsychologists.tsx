@@ -200,9 +200,18 @@ const FindPsychologists = () => {
       setSelectedSlot(null);
       setConfirmOpen(false);
       await fetchCalendarData(selectedPsych.user_id);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast({ title: "Erro ao agendar", variant: "destructive" });
+      const msg = String(err?.message || "");
+      if (msg.includes("Conflito de agenda")) {
+        toast({
+          title: "Horário indisponível",
+          description: "O profissional já possui um atendimento neste horário. Escolha outro horário.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Erro ao agendar", variant: "destructive" });
+      }
     } finally {
       setBooking(false);
     }

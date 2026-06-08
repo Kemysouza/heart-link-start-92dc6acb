@@ -157,7 +157,11 @@ const PsychologistAgenda = () => {
       status: "indisponivel",
     });
     if (error) {
-      toast.error("Não foi possível bloquear o horário");
+      if (String(error.message).includes("Conflito de agenda")) {
+        toast.error("Você já tem um atendimento neste horário");
+      } else {
+        toast.error("Não foi possível bloquear o horário");
+      }
       return;
     }
     toast.success("Horário marcado como indisponível");
