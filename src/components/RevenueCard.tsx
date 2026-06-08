@@ -313,8 +313,10 @@ export const RevenueCard = ({ psychologistId }: RevenueCardProps) => {
                     <XAxis
                       dataKey="nome"
                       interval={0}
-                      height={80}
-                      tick={(props) => <VerticalTick {...props} />}
+                      height={70}
+                      angle={-30}
+                      textAnchor="end"
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
                     />
                     <YAxis
                       tickFormatter={(v) => formatBRL(Number(v))}
