@@ -29,6 +29,7 @@ export type Database = {
           psychologist_id: string
           start_time: string
           status: string
+          tipo: string
           updated_at: string
           valor: number | null
         }
@@ -46,6 +47,7 @@ export type Database = {
           psychologist_id: string
           start_time: string
           status?: string
+          tipo?: string
           updated_at?: string
           valor?: number | null
         }
@@ -63,6 +65,7 @@ export type Database = {
           psychologist_id?: string
           start_time?: string
           status?: string
+          tipo?: string
           updated_at?: string
           valor?: number | null
         }
