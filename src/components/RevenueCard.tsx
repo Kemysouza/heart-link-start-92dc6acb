@@ -399,7 +399,9 @@ export const RevenueCard = ({ psychologistId }: RevenueCardProps) => {
                       dataKey="label"
                       interval={0}
                       height={60}
-                      tick={(props) => <VerticalTick {...props} />}
+                      angle={-30}
+                      textAnchor="end"
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
                     />
                     <YAxis
                       tickFormatter={(v) => formatBRL(Number(v))}
