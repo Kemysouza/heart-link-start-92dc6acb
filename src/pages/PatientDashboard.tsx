@@ -145,11 +145,47 @@ const PatientDashboard = () => {
               <CardDescription>Suas sessões agendadas</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                <p>Nenhuma consulta agendada</p>
-                <p className="text-sm">Agende com um psicólogo para começar</p>
-              </div>
+              {loadingAppointments ? (
+                <div className="text-center py-8 text-muted-foreground animate-pulse">Carregando...</div>
+              ) : appointments.filter(a => a.status !== 'cancelado' && a.status !== 'recusado').length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Calendar className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                  <p>Nenhuma consulta agendada</p>
+                  <p className="text-sm">Agende com um psicólogo para começar</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {appointments.filter(a => a.status !== 'cancelado' && a.status !== 'recusado').map((appt) => (
+                    <div key={appt.id} className="flex items-center gap-3 p-3 rounded-lg bg-accent/50 border border-accent">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <Calendar className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {appt.psychologist_name}
+                        </p>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {formatDate(appt.appointment_date)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <User className="w-3 h-3" />
+                            {formatTime(appt.start_time)} — {formatTime(appt.end_time)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        {appt.status === 'confirmado' ? (
+                          <span className="text-xs font-medium text-green-600 bg-green-100 px-2 py-0.5 rounded-full">Confirmada</span>
+                        ) : (
+                          <span className="text-xs font-medium text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">Pendente</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
