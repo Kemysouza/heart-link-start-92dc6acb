@@ -82,25 +82,23 @@ const FindPsychologists = () => {
   const fetchPsychologists = async () => {
     try {
       const { data: psychProfiles, error: psychError } = await supabase
-        .from("psychologist_profiles")
-        .select("user_id, crp, trajetoria_profissional, especializacoes");
+        .rpc("get_psychologist_directory");
       if (psychError) throw psychError;
       if (!psychProfiles || psychProfiles.length === 0) {
         setPsychologists([]);
         setLoading(false);
         return;
       }
-      const userIds = psychProfiles.map((p) => p.user_id);
+      const userIds = psychProfiles.map((p: any) => p.user_id);
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, nome_completo")
         .in("user_id", userIds);
       const profileMap = new Map(profiles?.map((p) => [p.user_id, p.nome_completo]) || []);
       setPsychologists(
-        psychProfiles.map((pp) => ({
+        psychProfiles.map((pp: any) => ({
           user_id: pp.user_id,
           nome_completo: profileMap.get(pp.user_id) || null,
-          crp: pp.crp,
           trajetoria_profissional: pp.trajetoria_profissional,
           especializacoes: pp.especializacoes,
         }))
@@ -111,6 +109,7 @@ const FindPsychologists = () => {
       setLoading(false);
     }
   };
+
 
   const openCalendar = async (psych: PsychologistInfo) => {
     setSelectedPsych(psych);
