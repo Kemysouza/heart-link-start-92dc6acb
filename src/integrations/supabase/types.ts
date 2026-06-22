@@ -322,6 +322,15 @@ export type Database = {
           start_time: string
         }[]
       }
+      get_psychologist_crp: { Args: { p_psych_id: string }; Returns: string }
+      get_psychologist_directory: {
+        Args: never
+        Returns: {
+          especializacoes: string[]
+          trajetoria_profissional: string
+          user_id: string
+        }[]
+      }
       get_user_display_name: {
         Args: { target_user_id: string }
         Returns: string
