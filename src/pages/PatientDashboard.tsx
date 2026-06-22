@@ -118,7 +118,20 @@ const PatientDashboard = () => {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-slide-up">
           {[
-            { icon: Calendar, label: "Consultas", value: String(appointments.filter(a => a.status !== 'cancelado' && a.status !== 'recusado').length), desc: "Agendadas", onClick: () => navigate("/dashboard/paciente/psicologos") },
+            {
+              icon: Calendar,
+              label: "Consultas",
+              value: String(appointments.filter(a => a.status !== 'cancelado' && a.status !== 'recusado').length),
+              desc: "Agendadas",
+              onClick: () => {
+                const next = appointments.find(a => a.status !== 'cancelado' && a.status !== 'recusado');
+                if (next) {
+                  navigate(`/dashboard/paciente/psicologos?open=${next.psychologist_id}&date=${next.appointment_date}&reschedule=${next.id}`);
+                } else {
+                  navigate("/dashboard/paciente/psicologos");
+                }
+              },
+            },
             { icon: Search, label: "Psicólogos", value: "—", desc: "Encontrar", onClick: () => navigate("/dashboard/paciente/psicologos") },
             { icon: MessageSquare, label: "Mensagens", value: "—", desc: "Conversas", onClick: () => navigate("/dashboard/paciente/mensagens") },
             { icon: BookOpen, label: "Diário", value: "0", desc: "Entradas", onClick: undefined },

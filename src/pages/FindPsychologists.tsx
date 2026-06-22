@@ -49,16 +49,18 @@ const FindPsychologists = () => {
   const [selectedSlot, setSelectedSlot] = useState<{ date: Date; hour: number } | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [viewOnly, setViewOnly] = useState(false);
+  const [rescheduleId, setRescheduleId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPsychologists();
     fetchConfirmed();
   }, [user]);
 
-  // Auto-open calendar when navigated with ?open=<psych_id>&date=YYYY-MM-DD
+  // Auto-open calendar when navigated with ?open=<psych_id>&date=YYYY-MM-DD[&reschedule=<id>]
   useEffect(() => {
     const openId = searchParams.get("open");
     const dateStr = searchParams.get("date");
+    const reschedule = searchParams.get("reschedule");
     if (!openId || loading || psychologists.length === 0) return;
     const psych = psychologists.find((p) => p.user_id === openId);
     if (psych) {
@@ -67,13 +69,18 @@ const FindPsychologists = () => {
         const target = new Date(y, (m || 1) - 1, d || 1);
         target.setHours(0, 0, 0, 0);
         setWeekStart(target);
-        setViewOnly(true);
-      } else {
+      }
+      if (reschedule) {
+        setRescheduleId(reschedule);
         setViewOnly(false);
+      } else {
+        setRescheduleId(null);
+        setViewOnly(!!dateStr);
       }
       openCalendar(psych);
       searchParams.delete("open");
       searchParams.delete("date");
+      searchParams.delete("reschedule");
       setSearchParams(searchParams, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -199,32 +206,50 @@ const FindPsychologists = () => {
     if (!user || !selectedPsych || !selectedSlot) return;
     setBooking(true);
     try {
-      const { data: existing } = await supabase
-        .from("psychologist_patients")
-        .select("id")
-        .eq("psychologist_id", selectedPsych.user_id)
-        .eq("patient_id", user.id)
-        .maybeSingle();
+      const dateStr = selectedSlot.date.toISOString().split("T")[0];
+      const startTime = `${String(selectedSlot.hour).padStart(2, "0")}:00:00`;
+      const endTime = `${String(selectedSlot.hour + 1).padStart(2, "0")}:00:00`;
 
-      if (!existing) {
-        await supabase.from("psychologist_patients").insert({
+      if (rescheduleId) {
+        const { error } = await supabase
+          .from("appointments")
+          .update({
+            appointment_date: dateStr,
+            start_time: startTime,
+            end_time: endTime,
+            status: "pendente",
+          })
+          .eq("id", rescheduleId)
+          .eq("patient_id", user.id);
+        if (error) throw error;
+        toast({ title: "Consulta remarcada!", description: `${formatDateFull(selectedSlot.date)} às ${selectedSlot.hour}:00` });
+        setRescheduleId(null);
+      } else {
+        const { data: existing } = await supabase
+          .from("psychologist_patients")
+          .select("id")
+          .eq("psychologist_id", selectedPsych.user_id)
+          .eq("patient_id", user.id)
+          .maybeSingle();
+
+        if (!existing) {
+          await supabase.from("psychologist_patients").insert({
+            psychologist_id: selectedPsych.user_id,
+            patient_id: user.id,
+          });
+        }
+
+        const { error } = await supabase.from("appointments").insert({
           psychologist_id: selectedPsych.user_id,
           patient_id: user.id,
+          appointment_date: dateStr,
+          start_time: startTime,
+          end_time: endTime,
         });
+        if (error) throw error;
+        toast({ title: "Consulta agendada!", description: `${formatDateFull(selectedSlot.date)} às ${selectedSlot.hour}:00` });
       }
 
-      const dateStr = selectedSlot.date.toISOString().split("T")[0];
-      const { error } = await supabase.from("appointments").insert({
-        psychologist_id: selectedPsych.user_id,
-        patient_id: user.id,
-        appointment_date: dateStr,
-        start_time: `${String(selectedSlot.hour).padStart(2, "0")}:00:00`,
-        end_time: `${String(selectedSlot.hour + 1).padStart(2, "0")}:00:00`,
-      });
-
-      if (error) throw error;
-
-      toast({ title: "Consulta agendada!", description: `${formatDateFull(selectedSlot.date)} às ${selectedSlot.hour}:00` });
       setSelectedSlot(null);
       setConfirmOpen(false);
       await fetchCalendarData(selectedPsych.user_id);
@@ -456,12 +481,12 @@ const FindPsychologists = () => {
           {!viewOnly && selectedSlot && (
             <div className="mt-4 p-4 rounded-lg border bg-accent/50">
               <p className="text-sm text-foreground mb-3">
-                Você confirma este horário com o profissional <strong>{selectedPsych?.nome_completo}</strong> no dia{" "}
+                {rescheduleId ? "Remarcar sua consulta com" : "Você confirma este horário com o profissional"} <strong>{selectedPsych?.nome_completo}</strong> no dia{" "}
                 <strong>{formatDateFull(selectedSlot.date)}</strong> às <strong>{selectedSlot.hour}:00</strong>?
               </p>
               <div className="flex gap-3">
                 <Button onClick={handleConfirmBooking} disabled={booking}>
-                  {booking ? "Agendando..." : "Sim, confirmar"}
+                  {booking ? (rescheduleId ? "Remarcando..." : "Agendando...") : (rescheduleId ? "Sim, remarcar" : "Sim, confirmar")}
                 </Button>
                 <Button variant="outline" onClick={() => setSelectedSlot(null)}>
                   Não, cancelar
