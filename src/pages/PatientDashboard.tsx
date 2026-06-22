@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Calendar, Heart, BookOpen, LogOut, Search, Clock, User } from "lucide-react";
+import { Brain, Calendar, Heart, BookOpen, LogOut, Search, Clock, User, MessageSquare } from "lucide-react";
 import { EmailConfirmToast } from "@/components/EmailConfirmToast";
 import { supabase } from "@/integrations/supabase/client";
 
