@@ -48,6 +48,7 @@ const FindPsychologists = () => {
   const [booking, setBooking] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ date: Date; hour: number } | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [viewOnly, setViewOnly] = useState(false);
 
   useEffect(() => {
     fetchPsychologists();
@@ -66,6 +67,9 @@ const FindPsychologists = () => {
         const target = new Date(y, (m || 1) - 1, d || 1);
         target.setHours(0, 0, 0, 0);
         setWeekStart(target);
+        setViewOnly(true);
+      } else {
+        setViewOnly(false);
       }
       openCalendar(psych);
       searchParams.delete("open");
@@ -326,7 +330,7 @@ const FindPsychologists = () => {
                         Confirmado
                       </div>
                       <div className="flex gap-2">
-                        <Button className="flex-1" onClick={() => openCalendar(psych)}>
+                        <Button className="flex-1" onClick={() => { setViewOnly(false); openCalendar(psych); }}>
                           <Calendar className="w-4 h-4 mr-2" />
                           Agendar Consulta
                         </Button>
@@ -377,16 +381,18 @@ const FindPsychologists = () => {
           </div>
 
           {/* Legend */}
-          <div className="flex gap-4 mb-3 text-xs">
-            <div className="flex items-center gap-1.5">
-              <div className="w-4 h-4 rounded bg-yellow-400/80 border border-yellow-500" />
-              <span className="text-muted-foreground">Disponível</span>
+          {!viewOnly && (
+            <div className="flex gap-4 mb-3 text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded bg-yellow-400/80 border border-yellow-500" />
+                <span className="text-muted-foreground">Disponível</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded bg-red-400/80 border border-red-500" />
+                <span className="text-muted-foreground">Ocupado</span>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-4 h-4 rounded bg-red-400/80 border border-red-500" />
-              <span className="text-muted-foreground">Ocupado</span>
-            </div>
-          </div>
+          )}
 
           {/* Calendar grid */}
           <div className="overflow-x-auto">
@@ -417,8 +423,8 @@ const FindPsychologists = () => {
                     return (
                       <button
                         key={i}
-                        disabled={status === "busy" || isPast}
-                        onClick={() => handleSlotClick(day, hour)}
+                        disabled={viewOnly || status === "busy" || isPast}
+                        onClick={() => !viewOnly && handleSlotClick(day, hour)}
                         className={`p-2 text-xs text-center transition-colors ${
                           isSelected
                             ? "bg-primary/30 ring-2 ring-primary cursor-pointer"
@@ -447,7 +453,7 @@ const FindPsychologists = () => {
           </div>
 
           {/* Confirmation bar */}
-          {selectedSlot && (
+          {!viewOnly && selectedSlot && (
             <div className="mt-4 p-4 rounded-lg border bg-accent/50">
               <p className="text-sm text-foreground mb-3">
                 Você confirma este horário com o profissional <strong>{selectedPsych?.nome_completo}</strong> no dia{" "}
