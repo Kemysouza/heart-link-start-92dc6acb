@@ -67,6 +67,9 @@ const FindPsychologists = () => {
         const target = new Date(y, (m || 1) - 1, d || 1);
         target.setHours(0, 0, 0, 0);
         setWeekStart(target);
+        setViewOnly(true);
+      } else {
+        setViewOnly(false);
       }
       openCalendar(psych);
       searchParams.delete("open");
