@@ -3,8 +3,19 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Calendar, Heart, BookOpen, LogOut, Search } from "lucide-react";
+import { Brain, Calendar, Heart, BookOpen, LogOut, Search, Clock, User } from "lucide-react";
 import { EmailConfirmToast } from "@/components/EmailConfirmToast";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Appointment {
+  id: string;
+  appointment_date: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+  psychologist_id: string;
+  psychologist_name?: string;
+}
 
 const PatientDashboard = () => {
   const { profile, signOut } = useAuth();
