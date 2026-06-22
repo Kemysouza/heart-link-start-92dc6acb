@@ -330,7 +330,7 @@ const FindPsychologists = () => {
                         Confirmado
                       </div>
                       <div className="flex gap-2">
-                        <Button className="flex-1" onClick={() => openCalendar(psych)}>
+                        <Button className="flex-1" onClick={() => { setViewOnly(false); openCalendar(psych); }}>
                           <Calendar className="w-4 h-4 mr-2" />
                           Agendar Consulta
                         </Button>
