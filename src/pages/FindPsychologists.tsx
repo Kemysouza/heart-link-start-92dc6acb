@@ -268,9 +268,10 @@ const FindPsychologists = () => {
                       <h3 className="font-semibold text-foreground text-lg">{psych.nome_completo || "Profissional"}</h3>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <Award className="w-3.5 h-3.5" />
-                        <span>CRP: {psych.crp}</span>
+                        <span>Profissional verificado</span>
                       </div>
                     </div>
+
                   </div>
 
                   {psych.especializacoes && psych.especializacoes.length > 0 && (
