@@ -54,14 +54,22 @@ const FindPsychologists = () => {
     fetchConfirmed();
   }, [user]);
 
-  // Auto-open calendar when navigated with ?open=<psych_id>
+  // Auto-open calendar when navigated with ?open=<psych_id>&date=YYYY-MM-DD
   useEffect(() => {
     const openId = searchParams.get("open");
+    const dateStr = searchParams.get("date");
     if (!openId || loading || psychologists.length === 0) return;
     const psych = psychologists.find((p) => p.user_id === openId);
     if (psych) {
+      if (dateStr) {
+        const [y, m, d] = dateStr.split("-").map(Number);
+        const target = new Date(y, (m || 1) - 1, d || 1);
+        target.setHours(0, 0, 0, 0);
+        setWeekStart(target);
+      }
       openCalendar(psych);
       searchParams.delete("open");
+      searchParams.delete("date");
       setSearchParams(searchParams, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
