@@ -159,7 +159,7 @@ const PatientDashboard = () => {
                     <button
                       key={appt.id}
                       type="button"
-                      onClick={() => navigate(`/dashboard/paciente/psicologos?open=${appt.psychologist_id}`)}
+                      onClick={() => navigate(`/dashboard/paciente/psicologos?open=${appt.psychologist_id}&date=${appt.appointment_date}`)}
                       className="w-full text-left flex items-center gap-3 p-3 rounded-lg bg-accent/50 border border-accent hover:bg-accent hover:shadow-card transition-all duration-200 cursor-pointer"
                       title="Abrir agenda do profissional"
                     >
