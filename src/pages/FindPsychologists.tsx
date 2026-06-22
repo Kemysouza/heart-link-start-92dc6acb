@@ -30,6 +30,7 @@ const DAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const FindPsychologists = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [psychologists, setPsychologists] = useState<PsychologistInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
@@ -52,6 +53,20 @@ const FindPsychologists = () => {
     fetchPsychologists();
     fetchConfirmed();
   }, [user]);
+
+  // Auto-open calendar when navigated with ?open=<psych_id>
+  useEffect(() => {
+    const openId = searchParams.get("open");
+    if (!openId || loading || psychologists.length === 0) return;
+    const psych = psychologists.find((p) => p.user_id === openId);
+    if (psych) {
+      openCalendar(psych);
+      searchParams.delete("open");
+      setSearchParams(searchParams, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, psychologists, searchParams]);
+
 
   const fetchConfirmed = async () => {
     if (!user) return;
