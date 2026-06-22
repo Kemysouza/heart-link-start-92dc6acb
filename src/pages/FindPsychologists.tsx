@@ -381,16 +381,18 @@ const FindPsychologists = () => {
           </div>
 
           {/* Legend */}
-          <div className="flex gap-4 mb-3 text-xs">
-            <div className="flex items-center gap-1.5">
-              <div className="w-4 h-4 rounded bg-yellow-400/80 border border-yellow-500" />
-              <span className="text-muted-foreground">Disponível</span>
+          {!viewOnly && (
+            <div className="flex gap-4 mb-3 text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded bg-yellow-400/80 border border-yellow-500" />
+                <span className="text-muted-foreground">Disponível</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded bg-red-400/80 border border-red-500" />
+                <span className="text-muted-foreground">Ocupado</span>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-4 h-4 rounded bg-red-400/80 border border-red-500" />
-              <span className="text-muted-foreground">Ocupado</span>
-            </div>
-          </div>
+          )}
 
           {/* Calendar grid */}
           <div className="overflow-x-auto">
