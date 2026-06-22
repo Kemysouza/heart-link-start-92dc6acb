@@ -39,7 +39,6 @@ const FindPsychologists = () => {
   const [selectedPsych, setSelectedPsych] = useState<PsychologistInfo | null>(null);
   const [weekStart, setWeekStart] = useState(() => {
     const d = new Date();
-    d.setDate(d.getDate() - d.getDay() + 1); // Monday
     d.setHours(0, 0, 0, 0);
     return d;
   });
