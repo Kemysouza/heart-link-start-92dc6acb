@@ -453,7 +453,7 @@ const FindPsychologists = () => {
           </div>
 
           {/* Confirmation bar */}
-          {selectedSlot && (
+          {!viewOnly && selectedSlot && (
             <div className="mt-4 p-4 rounded-lg border bg-accent/50">
               <p className="text-sm text-foreground mb-3">
                 Você confirma este horário com o profissional <strong>{selectedPsych?.nome_completo}</strong> no dia{" "}
