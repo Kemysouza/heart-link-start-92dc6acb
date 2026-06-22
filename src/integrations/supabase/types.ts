@@ -313,6 +313,15 @@ export type Database = {
       }
     }
     Functions: {
+      get_psychologist_busy_slots: {
+        Args: { p_psych_id: string }
+        Returns: {
+          appointment_date: string
+          end_time: string
+          is_unavailable: boolean
+          start_time: string
+        }[]
+      }
       get_user_display_name: {
         Args: { target_user_id: string }
         Returns: string
