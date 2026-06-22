@@ -120,12 +120,14 @@ const FindPsychologists = () => {
   };
 
   const fetchCalendarData = async (psychId: string) => {
-    const { data } = await supabase
-      .from("appointments")
-      .select("appointment_date, start_time, end_time")
-      .eq("psychologist_id", psychId)
-      .in("status", ["agendado", "confirmado", "indisponivel"]);
-    setAppointments((data as Appointment[]) || []);
+    const { data } = await supabase.rpc("get_psychologist_busy_slots", {
+      p_psych_id: psychId,
+    });
+    setAppointments(((data as any[]) || []).map((r) => ({
+      appointment_date: r.appointment_date,
+      start_time: r.start_time,
+      end_time: r.end_time,
+    })) as Appointment[]);
   };
 
   const changeWeek = (delta: number) => {
