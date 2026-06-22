@@ -13,6 +13,7 @@ import PsychologistPatients from "./pages/PsychologistPatients";
 import PatientDashboard from "./pages/PatientDashboard";
 import FindPsychologists from "./pages/FindPsychologists";
 import ChatWithPsychologist from "./pages/ChatWithPsychologist";
+import PatientChats from "./pages/PatientChats";
 import PsychologistChats from "./pages/PsychologistChats";
 import PsychologistChatConversation from "./pages/PsychologistChatConversation";
 import PsychologistAgenda from "./pages/PsychologistAgenda";
