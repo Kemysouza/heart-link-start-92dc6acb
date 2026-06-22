@@ -13,6 +13,7 @@ import PsychologistPatients from "./pages/PsychologistPatients";
 import PatientDashboard from "./pages/PatientDashboard";
 import FindPsychologists from "./pages/FindPsychologists";
 import ChatWithPsychologist from "./pages/ChatWithPsychologist";
+import PatientChats from "./pages/PatientChats";
 import PsychologistChats from "./pages/PsychologistChats";
 import PsychologistChatConversation from "./pages/PsychologistChatConversation";
 import PsychologistAgenda from "./pages/PsychologistAgenda";
@@ -63,6 +64,7 @@ const AppRoutes = () => {
       <Route path="/dashboard/psicologo/chat/:patientId" element={<ProtectedRoute><PsychologistChatConversation /></ProtectedRoute>} />
       <Route path="/dashboard/paciente" element={<ProtectedRoute><PatientDashboard /></ProtectedRoute>} />
       <Route path="/dashboard/paciente/psicologos" element={<ProtectedRoute><FindPsychologists /></ProtectedRoute>} />
+      <Route path="/dashboard/paciente/mensagens" element={<ProtectedRoute><PatientChats /></ProtectedRoute>} />
       <Route path="/chat/:psychologistId" element={<ProtectedRoute><ChatWithPsychologist /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>

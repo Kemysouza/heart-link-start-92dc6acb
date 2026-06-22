@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Calendar, Heart, BookOpen, LogOut, Search, Clock, User } from "lucide-react";
+import { Brain, Calendar, Heart, BookOpen, LogOut, Search, Clock, User, MessageSquare } from "lucide-react";
 import { EmailConfirmToast } from "@/components/EmailConfirmToast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -120,7 +120,7 @@ const PatientDashboard = () => {
           {[
             { icon: Calendar, label: "Consultas", value: String(appointments.filter(a => a.status !== 'cancelado' && a.status !== 'recusado').length), desc: "Agendadas", onClick: undefined },
             { icon: Search, label: "Psicólogos", value: "—", desc: "Encontrar", onClick: () => navigate("/dashboard/paciente/psicologos") },
-            { icon: Heart, label: "Bem-estar", value: "—", desc: "Registros", onClick: undefined },
+            { icon: MessageSquare, label: "Mensagens", value: "—", desc: "Conversas", onClick: () => navigate("/dashboard/paciente/mensagens") },
             { icon: BookOpen, label: "Diário", value: "0", desc: "Entradas", onClick: undefined },
           ].map(({ icon: Icon, label, value, desc, onClick }) => (
             <Card key={label} className={`shadow-card border-0 cursor-pointer hover:shadow-elevated hover:scale-[1.02] transition-all duration-200`} onClick={onClick}>
