@@ -12,10 +12,10 @@ import { toast } from "@/hooks/use-toast";
 interface PsychologistInfo {
   user_id: string;
   nome_completo: string | null;
-  crp: string;
   trajetoria_profissional: string | null;
   especializacoes: string[] | null;
 }
+
 
 interface Appointment {
   appointment_date: string;
