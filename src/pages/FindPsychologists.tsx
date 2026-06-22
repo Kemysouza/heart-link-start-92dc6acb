@@ -56,10 +56,11 @@ const FindPsychologists = () => {
     fetchConfirmed();
   }, [user]);
 
-  // Auto-open calendar when navigated with ?open=<psych_id>&date=YYYY-MM-DD
+  // Auto-open calendar when navigated with ?open=<psych_id>&date=YYYY-MM-DD[&reschedule=<id>]
   useEffect(() => {
     const openId = searchParams.get("open");
     const dateStr = searchParams.get("date");
+    const reschedule = searchParams.get("reschedule");
     if (!openId || loading || psychologists.length === 0) return;
     const psych = psychologists.find((p) => p.user_id === openId);
     if (psych) {
@@ -68,13 +69,18 @@ const FindPsychologists = () => {
         const target = new Date(y, (m || 1) - 1, d || 1);
         target.setHours(0, 0, 0, 0);
         setWeekStart(target);
-        setViewOnly(true);
-      } else {
+      }
+      if (reschedule) {
+        setRescheduleId(reschedule);
         setViewOnly(false);
+      } else {
+        setRescheduleId(null);
+        setViewOnly(!!dateStr);
       }
       openCalendar(psych);
       searchParams.delete("open");
       searchParams.delete("date");
+      searchParams.delete("reschedule");
       setSearchParams(searchParams, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
