@@ -118,7 +118,7 @@ const PatientDashboard = () => {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-slide-up">
           {[
-            { icon: Calendar, label: "Consultas", value: "0", desc: "Agendadas", onClick: undefined },
+            { icon: Calendar, label: "Consultas", value: String(appointments.filter(a => a.status !== 'cancelado' && a.status !== 'recusado').length), desc: "Agendadas", onClick: undefined },
             { icon: Search, label: "Psicólogos", value: "—", desc: "Encontrar", onClick: () => navigate("/dashboard/paciente/psicologos") },
             { icon: Heart, label: "Bem-estar", value: "—", desc: "Registros", onClick: undefined },
             { icon: BookOpen, label: "Diário", value: "0", desc: "Entradas", onClick: undefined },
