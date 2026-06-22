@@ -18,9 +18,11 @@ interface Appointment {
 }
 
 const PatientDashboard = () => {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, user } = useAuth();
   const navigate = useNavigate();
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loadingAppointments, setLoadingAppointments] = useState(true);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("pending_email_confirm");
@@ -29,6 +31,55 @@ const PatientDashboard = () => {
       sessionStorage.removeItem("pending_email_confirm");
     }
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchAppointments();
+  }, [user]);
+
+  const fetchAppointments = async () => {
+    if (!user) return;
+    setLoadingAppointments(true);
+    try {
+      const { data: appts, error } = await supabase
+        .from("appointments")
+        .select("id, appointment_date, start_time, end_time, status, psychologist_id")
+        .eq("patient_id", user.id)
+        .order("appointment_date", { ascending: true })
+        .order("start_time", { ascending: true });
+
+      if (error) throw error;
+
+      const list = appts || [];
+      const psychIds = [...new Set(list.map((a: any) => a.psychologist_id))];
+      let nameMap = new Map<string, string>();
+      if (psychIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("user_id, nome_completo")
+          .in("user_id", psychIds);
+        (profilesData || []).forEach((p: any) => nameMap.set(p.user_id, p.nome_completo));
+      }
+
+      setAppointments(
+        list.map((a: any) => ({
+          ...a,
+          psychologist_name: nameMap.get(a.psychologist_id) || "Profissional",
+        }))
+      );
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingAppointments(false);
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`;
+  };
+
+  const formatTime = (timeStr: string) => timeStr.slice(0, 5);
 
   return (
     <div className="min-h-screen bg-background">
