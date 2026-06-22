@@ -118,7 +118,7 @@ const PatientDashboard = () => {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-slide-up">
           {[
-            { icon: Calendar, label: "Consultas", value: String(appointments.filter(a => a.status !== 'cancelado' && a.status !== 'recusado').length), desc: "Agendadas", onClick: undefined },
+            { icon: Calendar, label: "Consultas", value: String(appointments.filter(a => a.status !== 'cancelado' && a.status !== 'recusado').length), desc: "Agendadas", onClick: () => navigate("/dashboard/paciente/psicologos") },
             { icon: Search, label: "Psicólogos", value: "—", desc: "Encontrar", onClick: () => navigate("/dashboard/paciente/psicologos") },
             { icon: MessageSquare, label: "Mensagens", value: "—", desc: "Conversas", onClick: () => navigate("/dashboard/paciente/mensagens") },
             { icon: BookOpen, label: "Diário", value: "0", desc: "Entradas", onClick: undefined },
@@ -156,7 +156,13 @@ const PatientDashboard = () => {
               ) : (
                 <div className="space-y-3">
                   {appointments.filter(a => a.status !== 'cancelado' && a.status !== 'recusado').map((appt) => (
-                    <div key={appt.id} className="flex items-center gap-3 p-3 rounded-lg bg-accent/50 border border-accent">
+                    <button
+                      key={appt.id}
+                      type="button"
+                      onClick={() => navigate(`/dashboard/paciente/psicologos?open=${appt.psychologist_id}`)}
+                      className="w-full text-left flex items-center gap-3 p-3 rounded-lg bg-accent/50 border border-accent hover:bg-accent hover:shadow-card transition-all duration-200 cursor-pointer"
+                      title="Abrir agenda do profissional"
+                    >
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                         <Calendar className="w-5 h-5 text-primary" />
                       </div>
@@ -182,8 +188,9 @@ const PatientDashboard = () => {
                           <span className="text-xs font-medium text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">Pendente</span>
                         )}
                       </div>
-                    </div>
+                    </button>
                   ))}
+
                 </div>
               )}
             </CardContent>
