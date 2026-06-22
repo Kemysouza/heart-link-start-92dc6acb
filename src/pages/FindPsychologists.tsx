@@ -423,8 +423,8 @@ const FindPsychologists = () => {
                     return (
                       <button
                         key={i}
-                        disabled={status === "busy" || isPast}
-                        onClick={() => handleSlotClick(day, hour)}
+                        disabled={viewOnly || status === "busy" || isPast}
+                        onClick={() => !viewOnly && handleSlotClick(day, hour)}
                         className={`p-2 text-xs text-center transition-colors ${
                           isSelected
                             ? "bg-primary/30 ring-2 ring-primary cursor-pointer"
