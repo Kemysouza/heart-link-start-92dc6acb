@@ -481,12 +481,12 @@ const FindPsychologists = () => {
           {!viewOnly && selectedSlot && (
             <div className="mt-4 p-4 rounded-lg border bg-accent/50">
               <p className="text-sm text-foreground mb-3">
-                Você confirma este horário com o profissional <strong>{selectedPsych?.nome_completo}</strong> no dia{" "}
+                {rescheduleId ? "Remarcar sua consulta com" : "Você confirma este horário com o profissional"} <strong>{selectedPsych?.nome_completo}</strong> no dia{" "}
                 <strong>{formatDateFull(selectedSlot.date)}</strong> às <strong>{selectedSlot.hour}:00</strong>?
               </p>
               <div className="flex gap-3">
                 <Button onClick={handleConfirmBooking} disabled={booking}>
-                  {booking ? "Agendando..." : "Sim, confirmar"}
+                  {booking ? (rescheduleId ? "Remarcando..." : "Agendando...") : (rescheduleId ? "Sim, remarcar" : "Sim, confirmar")}
                 </Button>
                 <Button variant="outline" onClick={() => setSelectedSlot(null)}>
                   Não, cancelar
