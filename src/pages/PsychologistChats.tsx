@@ -37,22 +37,15 @@ const PsychologistChats = () => {
   const fetchContacts = async () => {
     if (!user) return;
 
-    // Get all messages where psychologist is sender or receiver
+    // Messages
     const { data: msgs } = await supabase
       .from("messages")
       .select("*")
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order("created_at", { ascending: false });
 
-    if (!msgs || msgs.length === 0) {
-      setContacts([]);
-      setLoading(false);
-      return;
-    }
-
-    // Group by other user
     const contactMap = new Map<string, { last_message: string; last_time: string; unread: number }>();
-    for (const msg of msgs) {
+    for (const msg of msgs || []) {
       const otherId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
       if (!contactMap.has(otherId)) {
         contactMap.set(otherId, {
@@ -62,13 +55,35 @@ const PsychologistChats = () => {
         });
       }
       if (msg.receiver_id === user.id && !msg.is_read) {
-        const c = contactMap.get(otherId)!;
-        c.unread++;
+        contactMap.get(otherId)!.unread++;
       }
     }
 
-    // Get names
+    // Pacientes com consultas aceitas (confirmadas) — aparecem mesmo sem mensagens
+    const { data: appts } = await supabase
+      .from("appointments")
+      .select("patient_id, created_at")
+      .eq("psychologist_id", user.id)
+      .eq("status", "confirmado");
+
+    for (const a of appts || []) {
+      if (!a.patient_id) continue;
+      if (!contactMap.has(a.patient_id)) {
+        contactMap.set(a.patient_id, {
+          last_message: "Consulta confirmada — inicie uma conversa",
+          last_time: a.created_at,
+          unread: 0,
+        });
+      }
+    }
+
     const ids = Array.from(contactMap.keys());
+    if (ids.length === 0) {
+      setContacts([]);
+      setLoading(false);
+      return;
+    }
+
     const { data: profiles } = await supabase
       .from("profiles")
       .select("user_id, nome_completo")
@@ -76,13 +91,15 @@ const PsychologistChats = () => {
 
     const nameMap = new Map(profiles?.map((p) => [p.user_id, p.nome_completo]) || []);
 
-    const result: ChatContact[] = ids.map((id) => ({
-      user_id: id,
-      nome_completo: nameMap.get(id) || null,
-      last_message: contactMap.get(id)!.last_message,
-      last_time: contactMap.get(id)!.last_time,
-      unread_count: contactMap.get(id)!.unread,
-    }));
+    const result: ChatContact[] = ids
+      .map((id) => ({
+        user_id: id,
+        nome_completo: nameMap.get(id) || null,
+        last_message: contactMap.get(id)!.last_message,
+        last_time: contactMap.get(id)!.last_time,
+        unread_count: contactMap.get(id)!.unread,
+      }))
+      .sort((a, b) => new Date(b.last_time).getTime() - new Date(a.last_time).getTime());
 
     setContacts(result);
     setLoading(false);
