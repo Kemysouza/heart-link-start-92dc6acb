@@ -48,6 +48,7 @@ const FindPsychologists = () => {
   const [booking, setBooking] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ date: Date; hour: number } | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [viewOnly, setViewOnly] = useState(false);
 
   useEffect(() => {
     fetchPsychologists();
