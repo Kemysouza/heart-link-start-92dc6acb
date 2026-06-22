@@ -120,7 +120,7 @@ const PatientDashboard = () => {
           {[
             { icon: Calendar, label: "Consultas", value: String(appointments.filter(a => a.status !== 'cancelado' && a.status !== 'recusado').length), desc: "Agendadas", onClick: undefined },
             { icon: Search, label: "Psicólogos", value: "—", desc: "Encontrar", onClick: () => navigate("/dashboard/paciente/psicologos") },
-            { icon: Heart, label: "Bem-estar", value: "—", desc: "Registros", onClick: undefined },
+            { icon: MessageSquare, label: "Mensagens", value: "—", desc: "Conversas", onClick: () => navigate("/dashboard/paciente/mensagens") },
             { icon: BookOpen, label: "Diário", value: "0", desc: "Entradas", onClick: undefined },
           ].map(({ icon: Icon, label, value, desc, onClick }) => (
             <Card key={label} className={`shadow-card border-0 cursor-pointer hover:shadow-elevated hover:scale-[1.02] transition-all duration-200`} onClick={onClick}>
