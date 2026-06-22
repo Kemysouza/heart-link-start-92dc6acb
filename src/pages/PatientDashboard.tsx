@@ -3,13 +3,26 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Calendar, Heart, BookOpen, LogOut, Search } from "lucide-react";
+import { Brain, Calendar, Heart, BookOpen, LogOut, Search, Clock, User } from "lucide-react";
 import { EmailConfirmToast } from "@/components/EmailConfirmToast";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Appointment {
+  id: string;
+  appointment_date: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+  psychologist_id: string;
+  psychologist_name?: string;
+}
 
 const PatientDashboard = () => {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, user } = useAuth();
   const navigate = useNavigate();
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loadingAppointments, setLoadingAppointments] = useState(true);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("pending_email_confirm");
@@ -18,6 +31,55 @@ const PatientDashboard = () => {
       sessionStorage.removeItem("pending_email_confirm");
     }
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchAppointments();
+  }, [user]);
+
+  const fetchAppointments = async () => {
+    if (!user) return;
+    setLoadingAppointments(true);
+    try {
+      const { data: appts, error } = await supabase
+        .from("appointments")
+        .select("id, appointment_date, start_time, end_time, status, psychologist_id")
+        .eq("patient_id", user.id)
+        .order("appointment_date", { ascending: true })
+        .order("start_time", { ascending: true });
+
+      if (error) throw error;
+
+      const list = appts || [];
+      const psychIds = [...new Set(list.map((a: any) => a.psychologist_id))];
+      let nameMap = new Map<string, string>();
+      if (psychIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("user_id, nome_completo")
+          .in("user_id", psychIds);
+        (profilesData || []).forEach((p: any) => nameMap.set(p.user_id, p.nome_completo));
+      }
+
+      setAppointments(
+        list.map((a: any) => ({
+          ...a,
+          psychologist_name: nameMap.get(a.psychologist_id) || "Profissional",
+        }))
+      );
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingAppointments(false);
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`;
+  };
+
+  const formatTime = (timeStr: string) => timeStr.slice(0, 5);
 
   return (
     <div className="min-h-screen bg-background">
@@ -56,7 +118,7 @@ const PatientDashboard = () => {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-slide-up">
           {[
-            { icon: Calendar, label: "Consultas", value: "0", desc: "Agendadas", onClick: undefined },
+            { icon: Calendar, label: "Consultas", value: String(appointments.filter(a => a.status !== 'cancelado' && a.status !== 'recusado').length), desc: "Agendadas", onClick: undefined },
             { icon: Search, label: "Psicólogos", value: "—", desc: "Encontrar", onClick: () => navigate("/dashboard/paciente/psicologos") },
             { icon: Heart, label: "Bem-estar", value: "—", desc: "Registros", onClick: undefined },
             { icon: BookOpen, label: "Diário", value: "0", desc: "Entradas", onClick: undefined },
@@ -83,11 +145,47 @@ const PatientDashboard = () => {
               <CardDescription>Suas sessões agendadas</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                <p>Nenhuma consulta agendada</p>
-                <p className="text-sm">Agende com um psicólogo para começar</p>
-              </div>
+              {loadingAppointments ? (
+                <div className="text-center py-8 text-muted-foreground animate-pulse">Carregando...</div>
+              ) : appointments.filter(a => a.status !== 'cancelado' && a.status !== 'recusado').length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Calendar className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                  <p>Nenhuma consulta agendada</p>
+                  <p className="text-sm">Agende com um psicólogo para começar</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {appointments.filter(a => a.status !== 'cancelado' && a.status !== 'recusado').map((appt) => (
+                    <div key={appt.id} className="flex items-center gap-3 p-3 rounded-lg bg-accent/50 border border-accent">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <Calendar className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {appt.psychologist_name}
+                        </p>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {formatDate(appt.appointment_date)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <User className="w-3 h-3" />
+                            {formatTime(appt.start_time)} — {formatTime(appt.end_time)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        {appt.status === 'confirmado' ? (
+                          <span className="text-xs font-medium text-green-600 bg-green-100 px-2 py-0.5 rounded-full">Confirmada</span>
+                        ) : (
+                          <span className="text-xs font-medium text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">Pendente</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
