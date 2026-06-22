@@ -64,6 +64,7 @@ const AppRoutes = () => {
       <Route path="/dashboard/psicologo/chat/:patientId" element={<ProtectedRoute><PsychologistChatConversation /></ProtectedRoute>} />
       <Route path="/dashboard/paciente" element={<ProtectedRoute><PatientDashboard /></ProtectedRoute>} />
       <Route path="/dashboard/paciente/psicologos" element={<ProtectedRoute><FindPsychologists /></ProtectedRoute>} />
+      <Route path="/dashboard/paciente/mensagens" element={<ProtectedRoute><PatientChats /></ProtectedRoute>} />
       <Route path="/chat/:psychologistId" element={<ProtectedRoute><ChatWithPsychologist /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
