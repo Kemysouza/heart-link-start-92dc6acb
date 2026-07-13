@@ -28,6 +28,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const RoleRoute = ({ role, children }: { role: "psicologo" | "paciente"; children: React.ReactNode }) => {
+  const { user, profile, loading, profileLoading } = useAuth();
+  if (loading || (user && profileLoading)) {
+    return <div className="min-h-screen flex items-center justify-center gradient-soft"><div className="animate-pulse text-muted-foreground">Carregando...</div></div>;
+  }
+  if (!user) return <Navigate to="/" replace />;
+  if (!profile?.role) return <Navigate to="/selecionar-perfil" replace />;
+  if (profile.role !== role) return <Navigate to="/" replace />;
+  return <>{children}</>;
+};
+
 const AppRoutes = () => {
   const { user, profile, loading, profileLoading } = useAuth();
 
@@ -57,15 +68,15 @@ const AppRoutes = () => {
       <Route path="/selecionar-perfil" element={<ProtectedRoute><RoleSelect /></ProtectedRoute>} />
       <Route path="/onboarding/psicologo" element={<ProtectedRoute><PsychologistOnboarding /></ProtectedRoute>} />
       <Route path="/onboarding/paciente" element={<ProtectedRoute><PatientOnboarding /></ProtectedRoute>} />
-      <Route path="/dashboard/psicologo" element={<ProtectedRoute><PsychologistDashboard /></ProtectedRoute>} />
-      <Route path="/dashboard/psicologo/pacientes" element={<ProtectedRoute><PsychologistPatients /></ProtectedRoute>} />
-      <Route path="/dashboard/psicologo/mensagens" element={<ProtectedRoute><PsychologistChats /></ProtectedRoute>} />
-      <Route path="/dashboard/psicologo/agenda" element={<ProtectedRoute><PsychologistAgenda /></ProtectedRoute>} />
-      <Route path="/dashboard/psicologo/chat/:patientId" element={<ProtectedRoute><PsychologistChatConversation /></ProtectedRoute>} />
-      <Route path="/dashboard/paciente" element={<ProtectedRoute><PatientDashboard /></ProtectedRoute>} />
-      <Route path="/dashboard/paciente/psicologos" element={<ProtectedRoute><FindPsychologists /></ProtectedRoute>} />
-      <Route path="/dashboard/paciente/mensagens" element={<ProtectedRoute><PatientChats /></ProtectedRoute>} />
-      <Route path="/chat/:psychologistId" element={<ProtectedRoute><ChatWithPsychologist /></ProtectedRoute>} />
+      <Route path="/dashboard/psicologo" element={<RoleRoute role="psicologo"><PsychologistDashboard /></RoleRoute>} />
+      <Route path="/dashboard/psicologo/pacientes" element={<RoleRoute role="psicologo"><PsychologistPatients /></RoleRoute>} />
+      <Route path="/dashboard/psicologo/mensagens" element={<RoleRoute role="psicologo"><PsychologistChats /></RoleRoute>} />
+      <Route path="/dashboard/psicologo/agenda" element={<RoleRoute role="psicologo"><PsychologistAgenda /></RoleRoute>} />
+      <Route path="/dashboard/psicologo/chat/:patientId" element={<RoleRoute role="psicologo"><PsychologistChatConversation /></RoleRoute>} />
+      <Route path="/dashboard/paciente" element={<RoleRoute role="paciente"><PatientDashboard /></RoleRoute>} />
+      <Route path="/dashboard/paciente/psicologos" element={<RoleRoute role="paciente"><FindPsychologists /></RoleRoute>} />
+      <Route path="/dashboard/paciente/mensagens" element={<RoleRoute role="paciente"><PatientChats /></RoleRoute>} />
+      <Route path="/chat/:psychologistId" element={<RoleRoute role="paciente"><ChatWithPsychologist /></RoleRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
