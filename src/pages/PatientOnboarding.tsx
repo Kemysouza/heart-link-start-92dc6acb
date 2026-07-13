@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { friendlyError } from "@/lib/errors";
 import { Brain, ArrowRight, ArrowLeft, LogOut, Check, X } from "lucide-react";
 import { validateStrongPassword, PASSWORD_RULE_TEXT } from "@/lib/passwordValidation";
 
@@ -224,7 +225,7 @@ const PatientOnboarding = () => {
       await refreshProfile();
       setStep(2);
     } catch (error: any) {
-      toast.error(error.message || "Erro ao salvar dados iniciais");
+      toast.error(friendlyError(error, "Erro ao salvar dados iniciais"));
     } finally {
       setIsLoading(false);
     }
@@ -273,7 +274,7 @@ const PatientOnboarding = () => {
       toast.success("Cadastro concluído!");
       navigate("/dashboard/paciente");
     } catch (error: any) {
-      toast.error(error.message || "Erro ao salvar dados");
+      toast.error(friendlyError(error, "Erro ao salvar dados"));
     } finally {
       setIsLoading(false);
     }

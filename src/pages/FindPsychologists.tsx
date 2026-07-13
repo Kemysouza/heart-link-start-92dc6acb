@@ -225,19 +225,8 @@ const FindPsychologists = () => {
         toast({ title: "Consulta remarcada!", description: `${formatDateFull(selectedSlot.date)} às ${selectedSlot.hour}:00` });
         setRescheduleId(null);
       } else {
-        const { data: existing } = await supabase
-          .from("psychologist_patients")
-          .select("id")
-          .eq("psychologist_id", selectedPsych.user_id)
-          .eq("patient_id", user.id)
-          .maybeSingle();
+        // psychologist_patients link is auto-created by a DB trigger on appointment insert
 
-        if (!existing) {
-          await supabase.from("psychologist_patients").insert({
-            psychologist_id: selectedPsych.user_id,
-            patient_id: user.id,
-          });
-        }
 
         const { error } = await supabase.from("appointments").insert({
           psychologist_id: selectedPsych.user_id,

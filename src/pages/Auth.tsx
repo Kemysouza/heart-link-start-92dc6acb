@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { friendlyError } from "@/lib/errors";
 import { Brain, ArrowLeft } from "lucide-react";
 
 const Auth = () => {
@@ -50,7 +51,7 @@ const Auth = () => {
 
       toast.success("Login realizado com sucesso!");
     } catch (error: any) {
-      toast.error(error.message || "Verifique seu e-mail e senha e tente novamente.");
+      toast.error(friendlyError(error, "Verifique seu e-mail e senha e tente novamente."));
     } finally {
       setIsLoading(false);
     }
