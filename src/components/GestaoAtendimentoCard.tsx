@@ -21,6 +21,7 @@ import {
 import { Briefcase, Check, FileUp, Loader2, Paperclip, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { friendlyError } from "@/lib/errors";
 
 interface GestaoAtendimentoCardProps {
   psychologistId: string;
