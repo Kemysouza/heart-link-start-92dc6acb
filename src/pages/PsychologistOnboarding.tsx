@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { friendlyError } from "@/lib/errors";
 import { Brain, ArrowRight, ArrowLeft, Check, X, LogOut } from "lucide-react";
 import { validateStrongPassword, PASSWORD_RULE_TEXT } from "@/lib/passwordValidation";
 
@@ -100,7 +101,7 @@ const PsychologistOnboarding = () => {
           await refreshProfile();
         }
       } catch (error: any) {
-        toast.error(error.message || "Erro ao criar conta");
+        toast.error(friendlyError(error, "Erro ao criar conta"));
         setIsLoading(false);
         return;
       }
@@ -143,7 +144,7 @@ const PsychologistOnboarding = () => {
       toast.success("Cadastro concluído!");
       navigate("/dashboard/psicologo");
     } catch (error: any) {
-      toast.error(error.message || "Erro ao salvar dados");
+      toast.error(friendlyError(error, "Erro ao salvar dados"));
     } finally {
       setIsLoading(false);
     }

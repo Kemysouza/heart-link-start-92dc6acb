@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Brain, ArrowLeft, Users, Download, Eye, StickyNote, MessageSquare, Calendar, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { friendlyError } from "@/lib/errors";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { saveAs } from "file-saver";
 
@@ -163,7 +164,7 @@ const PsychologistPatients = () => {
       }
       fetchData();
     } catch (e: any) {
-      toast.error(e.message || "Erro ao salvar");
+      toast.error(friendlyError(e, "Erro ao salvar"));
     }
   };
 

@@ -139,7 +139,7 @@ export const GestaoAtendimentoCard = ({ psychologistId }: GestaoAtendimentoCardP
           variant: "destructive",
         });
       } else {
-        toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+        toast({ title: "Erro ao salvar", description: friendlyError(error, "Não foi possível salvar. Tente novamente."), variant: "destructive" });
       }
       return;
     }
@@ -172,7 +172,7 @@ export const GestaoAtendimentoCard = ({ psychologistId }: GestaoAtendimentoCardP
     });
     if (error) {
       setUploading(null);
-      toast({ title: "Falha no upload", description: error.message, variant: "destructive" });
+      toast({ title: "Falha no upload", description: friendlyError(error, "Não foi possível enviar o arquivo. Tente novamente."), variant: "destructive" });
       return;
     }
     await updateRow(row.id, { [field]: path } as Partial<Row>);
