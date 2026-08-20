@@ -18,11 +18,11 @@ const Auth = () => {
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
-  if (role !== "paciente" && role !== "psicologo") {
+  if (role !== "psicologo") {
     return <Navigate to="/" replace />;
   }
 
-  const roleLabel = role === "psicologo" ? "Psicólogo(a)" : "Paciente";
+  const roleLabel = "Psicólogo(a)";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
