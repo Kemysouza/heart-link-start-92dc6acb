@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const recoverProfile = async (authUser: User, existingProfile: Profile | null) => {
-    const metadata = authUser.user_metadata as Record<string, unknown>;
+    const metadata = (authUser.user_metadata ?? {}) as Record<string, unknown>;
     const metadataRole = metadata.role === "paciente" || metadata.role === "psicologo" ? metadata.role : null;
     const metadataName = getMetadataString(metadata, "nome_completo", 120);
     const metadataPhone = getMetadataString(metadata, "telefone", 30);
