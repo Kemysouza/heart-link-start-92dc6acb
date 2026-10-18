@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Brain, ArrowLeft, Users, Download, Eye, StickyNote, MessageSquare, Calendar, RefreshCw } from "lucide-react";
+import { Brain, ArrowLeft, Users, Download, Eye, StickyNote, Calendar, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { friendlyError } from "@/lib/errors";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
@@ -265,7 +265,6 @@ const PsychologistPatients = () => {
                       <TableHead>Próxima Consulta</TableHead>
                       <TableHead>Pagamento</TableHead>
                       <TableHead>Agenda</TableHead>
-                      <TableHead>Mensagem</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -345,16 +344,6 @@ const PsychologistPatients = () => {
                               title="Ver agendamentos"
                             >
                               <Calendar className="w-3 h-3 mr-1" /> Ver
-                            </Button>
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => navigate(`/dashboard/psicologo/chat/${patient.user_id}`)}
-                              title="Enviar mensagem"
-                            >
-                              <MessageSquare className="w-3 h-3 mr-1" /> Enviar
                             </Button>
                           </TableCell>
                         </TableRow>
