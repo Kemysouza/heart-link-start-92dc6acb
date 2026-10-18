@@ -254,21 +254,6 @@ const PsychologistDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card
-            className="shadow-card border-0 cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
-            onClick={() => navigate("/dashboard/psicologo/mensagens")}
-          >
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
-                  <MessageSquare className="w-5 h-5 text-accent-foreground" />
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-foreground">{conversationsCount}</p>
-              <p className="text-sm text-muted-foreground">Mensagens · Conversas</p>
-              <p className="text-xs text-primary mt-1">Clique para ver →</p>
-            </CardContent>
-          </Card>
 
           <Card
             className="shadow-card border-0 cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
