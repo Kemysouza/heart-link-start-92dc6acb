@@ -331,10 +331,6 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_user_display_name: {
-        Args: { target_user_id: string }
-        Returns: string
-      }
     }
     Enums: {
       consultation_status: "em_andamento" | "finalizado" | "cancelado"

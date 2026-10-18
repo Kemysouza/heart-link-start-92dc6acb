@@ -1,0 +1,2 @@
+DROP FUNCTION IF EXISTS public.get_user_display_name(uuid);
+COMMENT ON TABLE public.messages IS 'DEPRECATED: professional messaging and stored conversation history are retired; permanent table deletion awaits backward-incompatible migration permission.';
