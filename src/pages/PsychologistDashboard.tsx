@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Brain, Calendar, Users, LogOut, MessageSquare, Settings } from "lucide-react";
+import { Brain, Calendar, Users, LogOut, Settings } from "lucide-react";
 import { EmailConfirmToast } from "@/components/EmailConfirmToast";
 import { PsychologistProfileDialog } from "@/components/PsychologistProfileDialog";
 import { RevenueCard } from "@/components/RevenueCard";
@@ -43,7 +43,6 @@ const PsychologistDashboard = () => {
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [activePatients, setActivePatients] = useState<number>(0);
   const [activePatientList, setActivePatientList] = useState<ActivePatientSummary[]>([]);
-  const [conversationsCount, setConversationsCount] = useState<number>(0);
   const [weekAppointments, setWeekAppointments] = useState<number>(0);
   const [upcomingAppointments, setUpcomingAppointments] = useState<UpcomingAppointment[]>([]);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
@@ -94,16 +93,6 @@ const PsychologistDashboard = () => {
         setActivePatientList([]);
       }
 
-      const { data: msgs } = await supabase
-        .from("messages")
-        .select("sender_id, receiver_id")
-        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
-      const others = new Set<string>();
-      msgs?.forEach((m: { sender_id: string; receiver_id: string }) => {
-        const other = m.sender_id === user.id ? m.receiver_id : m.sender_id;
-        others.add(other);
-      });
-      setConversationsCount(others.size);
 
       // Consultas desta semana (segunda a domingo)
       const now = new Date();
@@ -204,7 +193,7 @@ const PsychologistDashboard = () => {
           <p className="text-muted-foreground mt-1">Aqui está o resumo do seu consultório</p>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-slide-up">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8 animate-slide-up">
           <Card
             className="shadow-card border-0 cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
             onClick={() => navigate("/dashboard/psicologo/pacientes")}
